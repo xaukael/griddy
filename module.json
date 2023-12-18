@@ -1,0 +1,21 @@
+
+{
+    "id": "griddy",
+    "name": "griddy",
+    "title": "Griddy",
+    "description": "System agnostic grid based inventory",
+    "author": "Xaukael",
+    "authors": [{"name":"Xaukael"}],
+    "version": "1.0.0",
+    "minimumCoreVersion": "10",
+    "compatibleCoreVersion": "11",
+    "compatibility": {
+        "minimum": "10",
+        "verified": "11"
+      },
+    "scripts": ["griddy.js"],
+		"styles": [],
+    "url": "https://github.com/xaukael/griddy/",
+    "manifest": "https://github.com/xaukael/griddy/raw/main/module.json",
+    "download": "https://github.com/xaukael/griddy/raw/main/griddy.zip"
+}
