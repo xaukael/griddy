@@ -9,8 +9,8 @@ character = this
 let itemTypes = game.settings.get('griddy', 'itemTypes').split(',').map(t=>t.trim())
 let systemQuanityProp = game.settings.get('griddy', `systemQuanityProp`)
 let gridSize = options.gridSize || game.settings.get('griddy', `gridSize`)
-let rows = options.rows || character.getFlag('griddy', 'settings.rows') || 8
-let cols = options.cols || character.getFlag('griddy', 'settings.cols') || 10
+let rows = options.rows || character.getFlag('griddy', 'config.rows') || 8
+let cols = options.cols || character.getFlag('griddy', 'config.cols') || 10
 let background = options.background || game.settings.get('griddy', `background`)
 let itemBackground = options.itemBackground || game.settings.get('griddy', `itemBackground`)
 let gridColor = options.gridColor || game.settings.get('griddy', `gridColor`)
@@ -543,14 +543,59 @@ d.render(true);
 
 }// end Actor.prototype.inventoryGrid 
 
+Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
+  
+  buttons.unshift({
+    "label": "Griddy",
+    "class": "griddy",
+    "icon": "ffa-solid fa-table-cells",
+    onclick: (e)=>{ app.object.griddy() }
+  })
+  if (game.user.isGM)
+  buttons.unshift({
+    class: "griddy-config",
+    icon: "fa-solid fa-up-down-left-right",
+    label: "",
+    onclick: async (e)=>{
+      let actor = app.document
+      let changeDialog = new Dialog({title:`${actor.name} Grid Config`,content:'', buttons:{},
+        render: async (html)=>{
+          let p = actor.flags.griddy?.config
+          if (!p) {
+            await actor.setFlag('griddy', 'config', {rows: 6, cols: 10})
+            p = actor.flags.griddy?.config
+          }
+          let table = `<style>div.position-form span {line-height: var(--form-field-height);}</style>
+          <div class="position-form" style="display:grid; grid-template-columns: repeat(4, 1fr); column-gap: 1em; row-gap: .2em">`
+          table += `
+          <span>columns:</span><input  name="cols" type="number" value="${p.cols||1}"></input>
+          <span>rows:</span><input  name="rows" type="number" value="${p.rows||1}"></input>`
+          table+=`</div><button style="margin-top: .2em">Save</button>`
+          html[0].innerHTML = table
+          html.find('button').click(async function(){
+            let config = [...html.find('input')].reduce((a, e)=>{
+              return Object.assign(a, {[e.getAttribute('name')]: Number(e.value)})
+            },{})
+            await actor.setFlag('griddy', 'config', config)
+            ui.notifications.info(`Updated ${actor.name} Griddy flags: ${JSON.stringify(config)}`)
+            console.log(`${actor.name} (${actor.id}) flags updated`, config)
+          })
+          html.find('input').focusin(function(){this.select()}).on('keydown', function(e){
+            e.stopPropagation()
+            if (e.key=='Enter') html.find('button').click()
+          })
+        },
+        close: ()=>{ 
+          return;
+        }
+      },{top: e.clientY , left: e.clientX, width: 250, height: 'auto'}).render(true)
+    }
+  })
+})
 
-if (Hooks.gridHooks)
-for (let id of Hooks.gridHooks) Hooks.off('', id)
-Hooks.gridHooks = [];
-Hooks.gridHooks.push(
-Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
+Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
   if (app.object.uuid.startsWith('Actor'))
-  arr.unshift({
+  buttons.unshift({
     class: "delete-item",
     icon: "fas fa-trash",
     label: "Delete",
@@ -567,10 +612,11 @@ Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
       return item.delete()
     }
   })
-  arr.unshift({
+  if (game.settings.get('griddy', 'resizing'))
+  buttons.unshift({
     class: "move-item",
     icon: "fa-solid fa-up-down-left-right",
-    label: "Position on Grid",
+    label: "Position",
     onclick: async (e)=>{
       let item = app.document
       let changeDialog = new Dialog({title:`${item.name} Position`,content:'', buttons:{},
@@ -622,7 +668,6 @@ Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
     }
   })
 })
-) // end gridHooks push
 
 Hooks.once("init", ()=>{
   
