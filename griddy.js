@@ -466,7 +466,7 @@ let d = new Dialog({
       let item = character.items.get(tooBigStack.id)
       let quantity = foundry.utils.getProperty(item, `system.${systemQuanityProp}`)
       render = false
-      await item.update({[`system.${systemQuanityProp}`]:stackLimit}, {render: false})
+      await item.update({[`system.${systemQuanityProp}`]:stackLimit})
       quantity-=stackLimit
       let newItem = item.toObject()
       foundry.utils.setProperty(newItem, `system.${systemQuanityProp}`, quantity)
@@ -590,7 +590,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
           <span>exclude:</span><input name="e" type="checkbox" ${p.e?'checked':''}></input>
           <span>container:</span><input name="c" type="checkbox" ${p.c?'checked':''}></input>`
           if (p.c) table += `
-          <span>columns:</span<input  name="cols" type="number" value="${p.cols||1}"></input>
+          <span>columns:</span><input  name="cols" type="number" value="${p.cols||1}"></input>
           <span>rows:</span><input  name="rows" type="number" value="${p.rows||1}"></input>`
           table+=`</div><button style="margin-top: .2em">Save</button>`
           html[0].innerHTML = table
