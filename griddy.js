@@ -10,14 +10,14 @@ let background = options.background || '#222'
 let itemBackground = options.itemBackground || '#000'
 let gridColor = options.gridColor || '#333'
 let itemOutlineColor = options.itemOutlineColor || '#555'
-let resizing = options.resizing==undefined?game.user.isGM:options.resizing
+let resizing = game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false||options.resizing
 let locked = options.locked==undefined?false:options.locked;
 let container = options.container
 let top = options.top
 let left = options.left
 let render = true
 options = {gridSize, gridColor, rows, cols, background, itemBackground, itemOutlineColor, resizing, container, top, left}
-
+console.log(resizing)
 let id = `inventory-grid-${character.id}${container?`-${container}`:''}`;
 if ($(`div#${id}`).length) 
   return ui.windows[$(`div#${id}`).data().appid].close();
@@ -634,6 +634,17 @@ Hooks.once("init", ()=>{
     scope: "world",
     type: String,
     default: "quantity",
+    config: true,
+    restricted: true 
+  });
+
+  game.settings.register('griddy', `resizing`, {
+    name: `Who can resize items`,
+    hint: ``,
+    scope: "world",
+    type: String,
+    default: "GM",
+    choices: {"GM":"GM", "Everyone":"Everyone"},
     config: true,
     restricted: true 
   });
