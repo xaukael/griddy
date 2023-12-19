@@ -120,6 +120,7 @@ let d = new Dialog({
     let items = character.items.filter(i=>itemTypes.includes(i.type)&&i.flags.world?.position?.e!=true)
     if (container) items = items.filter(i=>i.flags.world.position.n && i.flags.world.position.n==container)
     else items = items.filter(i=>!i.flags.world.position.n)
+    
     // INITATE FLAGS FOR ITEMS
     let updates = items.filter(i => itemTypes.includes(i.type) && !foundry.utils.hasProperty(i, "flags.world.position")).map((i, index)=> { return {_id: i.id, flags: { world: { position: {
               x: index%cols,
@@ -158,35 +159,40 @@ let d = new Dialog({
     html.find(`div.${id}`).html(itemElements);
     
     // FUNCTION TO GET A POSISION (BAD NAME - RENAME?)
-    function testPosition(position, item, grid){
+    function testPosition(position, item, g){
+      
+      let grid = Array(rows).fill().map(()=>Array(cols).fill(1))
+      let otherItems = items.filter(i=>i.id!=item.id)
+      let filledSlots = otherItems.map(i=>{ return {...i.flags.world?.position, id: i.id}})
+      for (let slot of filledSlots.filter(c=>c.h>1 || c.w>1))
+        for (let x=0; x<slot.w; x++)
+          for (let y=0; y<slot.h; y++)
+            filledSlots.push({...slot, ...{x: slot.x+x, y: slot.y+y}})
+      for (let i of filledSlots)
+        grid[i.y][i.x] = 0
       p = foundry.utils.deepClone(position)
-      let test = $(`<div class="test" style="outline: 2px solid red; position: absolute; left: ${p.x*gridSize}px; top: ${p.y*gridSize}px; width: ${p.w*gridSize}px; height: ${p.h*gridSize}px;"></div>`)
-      grid.append(test)
-      //await  new Promise(resolve => setTimeout(resolve, 1000))
-      let overlapping = [...grid.find('div.item')].filter((e)=>elementsOverlap(test[0], e) && e.id != item.id)
-      if (overlapping.length) {
-        for (let y=0; y<=rows-p.h; y++) {
-          for (let x=0; x<=cols-p.w; x++) {
-            test.css({left: x*gridSize+'px', top: y*gridSize+'px'})
-            //await  new Promise(resolve => setTimeout(resolve, 25))
-            if ([...grid.find('div.item')].filter((e)=>elementsOverlap(test[0], e) && e.id != item.id).length==0 && x+p.w-1<cols && y+p.h-1<rows) {
-              grid.find('div.test').remove()
-              return Object.assign(p, {x, y})
-            }
-            if (p.w==p.h) continue;
-            Object.assign(p, {w:p.h, h:p.w})
-            test.css({width: p.w*gridSize+'px', height: p.h*gridSize+'px'})
-            //await  new Promise(resolve => setTimeout(resolve, 25))
-            if ([...grid.find('div.item')].filter((e)=>elementsOverlap(test[0], e) && e.id != item.id).length==0 && x+p.w-1<cols && y+p.h-1<rows) {
-              grid.find('div.test').remove()
-              return Object.assign(p, {x, y})
-            }
-            Object.assign(p, {w:p.h, h:p.w})
-            test.css({width: p.w*gridSize+'px', height: p.h*gridSize+'px'})
-          }
-        }
+      console.log(grid.join('\n'))
+      let gridString = grid.map(a=>a.join('')).join('')
+      let {w, h} = p
+      let pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
+      let match = gridString.match(pattern)
+      console.log(match)
+      if (match) {
+        let x = match.index%cols
+        let y = Math.floor(match.index/cols)
+        console.log('match 1', x,y,w,h)
+        return Object.assign(p, {x, y, w, h})
       }
-      grid.find('div.test').remove()
+      [w, h] = [h, w]; // try rotated-
+      pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
+      match = gridString.match(pattern)
+      console.log(match)
+      if (match) {
+        let x = match.index%cols
+        let y = Math.floor(match.index/cols)
+        console.log('match 1', x,y,w,h)
+        return Object.assign(p, {x, y, w, h})
+      }
       return position
     }
 
@@ -196,7 +202,7 @@ let d = new Dialog({
       let item = character.items.get(this.id)
       if (item.flags.world.position.c) {
         let p = item.flags.world.position
-        return character.inventoryGrid({
+        return character.griddy({
           container:item.id, 
           gridSize, 
           rows: p.rows||0, 
@@ -345,7 +351,7 @@ let d = new Dialog({
     })
     .bind('drop', async function(e){
       this.style.zIndex = 'unset'
-      $('div.item-drag-preview').remove()
+      let preview = $('div.item-drag-preview')
       e.originalEvent.preventDefault();
       let data = JSON.parse(e.originalEvent.dataTransfer.getData("text"));
       if (!data) return;
@@ -366,6 +372,7 @@ let d = new Dialog({
       let overlapping = [...$(this).find('div.item')].filter((e)=>elementsOverlap(test[0], e) && !(e.id == item.id && !data.split))
       $(this).find('div.test').remove()
       //if (overlapping.map(e=>e.id).includes(item.id)) return await item.setFlag('world', 'position', position)
+      let combined = false
       if (overlapping.length) {
         render = false
         for (let e of overlapping) {
@@ -376,6 +383,7 @@ let d = new Dialog({
             return d.render(true)
           }
           if (i.name != item.name) continue;
+          combined = true
           let iQuantity = foundry.utils.getProperty(i, `system.${systemQuanityProp}`)
           let itemQuantity =foundry.utils.getProperty(item, `system.${systemQuanityProp}`)
           if (item.id==i.id) return $(e).find('span').text(itemQuantity)
@@ -385,11 +393,12 @@ let d = new Dialog({
           
         }
         render = true
-        return d.render(true)
+        if (combined) return d.render(true)
         //return ui.notifications.warn("conflict")
       }
       
-      position = testPosition(position, item, $(this))
+      if (preview.hasClass('conflicts')) 
+        position = testPosition(position, item)
       /*
       if (outOfBounds(position, rows, cols)) {
         $(this).find('div.test').remove()
@@ -479,7 +488,7 @@ let d = new Dialog({
     for (let e of conflictingElements) {
       let item = character.items.get(e.id)
       let position = item.getFlag('world', 'position')
-      let newPosition = testPosition(position, item, $(conflictingElements[0]).parent())
+      let newPosition = testPosition(position, item)
       
       if (JSON.stringify(position) == JSON.stringify(newPosition)) continue;
       return item.setFlag('world', 'position', newPosition)
@@ -634,6 +643,17 @@ Hooks.once("init", ()=>{
 Hooks.on('ready', ()=>{
   if (game.user.isGM && game.settings.get('griddy', `itemTypes`) == "" && game.system.id == 'dnd5e')
     game.settings.set('griddy', `itemTypes`,"equipment,weapon,loot,consumable,backpack,tool")
+})
+
+Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
+  buttons.unshift({
+    "label": "Inventory Grid",
+    "class": "griddy",
+    "icon": "fas fa-table-cells",
+    onclick: (e)=>{
+      app.object.griddy()
+    }
+  })
 })
 
 //actor.griddy({gridSize: 50, rows:6, cols: 10, locked: true})
