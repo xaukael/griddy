@@ -1,4 +1,4 @@
-# griddy
+# Griddy
 
 This module provides core functionality for managing items, but some assembly will be required 
 
