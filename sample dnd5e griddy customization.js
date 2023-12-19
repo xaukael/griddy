@@ -1,13 +1,13 @@
-Hooks.on('renderInventoryGrid', (app, html, options)=>{
+Hooks.on('renderGriddy', (app, html, options)=>{
   let actor = app.object
   let itemTypes = ["equipment", "weapon", "loot", "consumable", "backpack", "tool"];
   let grid = html.find(`div[class^="inventory-grid-"]`)
   const rarityColors = {
-    common: 'gray',       
-    uncommon: 'green',    
-    rare: 'blue',         
-    veryRare: 'purple',       
-    legendary: 'orange'   
+    common: 'gray',
+    uncommon: 'green',
+    rare: 'blue',
+    veryRare: 'purple',
+    legendary: 'orange'
   };
   html.find('.item').each(function(){
     let item = actor.items.get(this.id)
@@ -17,7 +17,7 @@ Hooks.on('renderInventoryGrid', (app, html, options)=>{
   if (grid[0].className.length>32) return;
   let {gridSize , cols, rows, gridColor} = options
   let showEquippedGrid = actor.getFlag('world', 'showEquippedGrid')
-  let toggleEquippedGridButton = $(`<button>Toggle Equipped Grid</button>`).click(function(){
+  let toggleEquippedGridButton = $(`<button style="margin-top: 1em">Toggle Equipped Grid</button>`).click(function(){
     actor.setFlag('world', 'showEquippedGrid', !showEquippedGrid)
   })
   grid.after(toggleEquippedGridButton)
@@ -63,4 +63,36 @@ Hooks.on('renderInventoryGrid', (app, html, options)=>{
   })
   app.setPosition({})
   // grid-column: auto/span ${i.flags.world?.position?.w}; grid-row: auto/span ${i.flags.world?.position?.h};
+})//grid-auto-flow: dense;
+Hooks.on('ready', ()=>{
+
+  if (game.system.id != 'dnd5e') return true
+  
+  Hooks.on('preUpdateItem', (item, updates)=>{
+    if (!foundry.utils.hasProperty(updates, "system.equipped")) return
+    Object.assign(updates, {flags:{world:{position:{e:updates.system.equipped}}}})
+  })
+  
+  Hooks.on('preUpdateActor', async (actor, updates, context)=>{
+    return 
+    if (foundry.utils.hasProperty(context, "syncCurrency")) return 
+    if (!foundry.utils.hasProperty(updates, "system.currency")) return
+    if (foundry.utils.hasProperty(updates, "system.currency.gp")) {
+      let gold = actor.items.getName('Gold')
+      if (!gold) 
+        await actor.createEmbeddedDocuments("Item", [
+          {type:"loot", name:"Gold", img: "icons/commodities/currency/coin-embossed-crown-gold.webp",
+           system:{quantity:updates.system.currency.gp}}
+        ])
+      else await gold.update({system:{quantity:updates.system.currency.gp}}, )
+    }
+  })
+  Hooks.on('updateItem', (item, updates, context, userId)=>{
+    if (userId!= game.user.id) return
+    let currency = {"Gold": "gp"}
+    if (!item.uuid.startsWith('Actor')) return
+    if (!Object.keys(currency).includes(item.name)) return
+    if (!foundry.utils.hasProperty(updates, "system.quantity")) return
+    item.parent.update({[`system.currency.${currency[item.name]}`]:updates.system.quantity}, {syncCurrency:false})
+  })
 })
