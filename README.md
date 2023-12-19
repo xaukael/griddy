@@ -15,3 +15,5 @@ What the module handles
 - combining of items of the same name
 - storing items in items defined as containers
 - dragging and dropping of items to and from the grid
+
+![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
