@@ -8,15 +8,14 @@ character = this
 
 let itemTypes = game.settings.get('griddy', 'itemTypes').split(',').map(t=>t.trim())
 let systemQuanityProp = game.settings.get('griddy', `systemQuanityProp`)
-let gridSize = options.gridSize || 60
-let rows = options.rows || 8
-let cols = options.cols || 8
-let background = options.background || '#222'
-let itemBackground = options.itemBackground || '#000'
-let gridColor = options.gridColor || '#333'
-let itemOutlineColor = options.itemOutlineColor || '#555'
+let gridSize = options.gridSize || game.settings.get('griddy', `gridSize`)
+let rows = options.rows || character.getFlag('griddy', 'settings.rows') || 8
+let cols = options.cols || character.getFlag('griddy', 'settings.cols') || 10
+let background = options.background || game.settings.get('griddy', `background`)
+let itemBackground = options.itemBackground || game.settings.get('griddy', `itemBackground`)
+let gridColor = options.gridColor || game.settings.get('griddy', `gridColor`)
+let itemOutlineColor = options.itemOutlineColor || game.settings.get('griddy', `itemOutlineColor`)
 let resizing = game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false||options.resizing
-let locked = options.locked==undefined?false:options.locked;
 let container = options.container
 let top = options.top
 let left = options.left
