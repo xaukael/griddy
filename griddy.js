@@ -1,3 +1,8 @@
+/**
+ * Function to open a Griddy Dialog
+ * @constructor
+ * @param {object} options - settings for the grid
+ */
 Actor.prototype.griddy = function(options={}) {
 character = this
 
@@ -105,7 +110,7 @@ let d = new Dialog({
     pointer-events: none;
   }
   div.${id} > div.item-drag-preview {
-    outline: 2px solid grey; outline-offset: -2px; position: absolute; pointer-events: none;
+    outline: 2px solid ${itemOutlineColor}; outline-offset: -2px; position: absolute; pointer-events: none;
   }
   </style>
   <div class="${id}" style="height: ${rows*gridSize+1}px; width:${cols*gridSize+1}px;" data-grid-size="${gridSize}" data-rows="${rows}" data-cols="${cols}" data-color="${gridColor}"></div>`,
@@ -585,7 +590,8 @@ Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
           <span>y (top):</span><input  name="y" type="number" value="${p.y}"></input>`
           table += `
           <span>width:</span><input name="w" type="number" value="${p.w}"></input>
-          <span>height:</span><input  name="h" type="number" value="${p.h}"></input>
+          <span>height:</span><input  name="h" type="number" value="${p.h}"></input>`
+          if (game.user.isGM) table +=`
           <span style="grid-column: auto / span 2;">stack size limit:</span><input style="grid-column: auto / span 2;" name="s" type="number" value="${p.s||0}"></input>
           <span>exclude:</span><input name="e" type="checkbox" ${p.e?'checked':''}></input>
           <span>container:</span><input name="c" type="checkbox" ${p.c?'checked':''}></input>`
@@ -594,11 +600,14 @@ Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
           <span>rows:</span><input  name="rows" type="number" value="${p.rows||1}"></input>`
           table+=`</div><button style="margin-top: .2em">Save</button>`
           html[0].innerHTML = table
-          html.find('button').click(function(){
+          html.find('button').click(async function(){
             let position = [...html.find('input')].reduce((a, e)=>{
               return Object.assign(a, {[e.getAttribute('name')]: e.type=='number'?Number(e.value):e.checked})
             },{})
-            item.setFlag('griddy', 'position', position)
+            if (position.c) position.s = 0
+            await item.setFlag('griddy', 'position', position)
+            ui.notifications.info(`Updated ${item.name} Griddy flags: ${JSON.stringify(position)}`)
+            console.log(`${item.name} (${item.id}) flags updated`, position)
           })
           html.find('input').focusin(function(){this.select()}).on('keydown', function(e){
             e.stopPropagation()
@@ -639,8 +648,8 @@ Hooks.once("init", ()=>{
   });
 
   game.settings.register('griddy', `resizing`, {
-    name: `Who can resize items`,
-    hint: ``,
+    name: `Resizing`,
+    hint: `Who can resize items`,
     scope: "world",
     type: String,
     default: "GM",
@@ -648,7 +657,61 @@ Hooks.once("init", ()=>{
     config: true,
     restricted: true 
   });
+
+  game.settings.register('griddy', `gridSize`, {
+    name: `Grid Size`,
+    hint: `Grid square size in pixels`,
+    scope: "client",
+    type: Number,
+    default: "50",
+    config: true
+  });
+
+  game.settings.register('griddy', `background`, {
+    name: `Background`,
+    hint: `This can be any valid CSS background value`,
+    scope: "client",
+    type: String,
+    default: "#222",
+    config: true
+  });
   
+  game.settings.register('griddy', `itemBackground`, {
+    name: `Item Background`,
+    hint: `This can be any valid CSS background value`,
+    scope: "client",
+    type: String,
+    default: "#000",
+    config: true
+  });
+
+  game.settings.register('griddy', `gridColor`, {
+    name: `Item Background`,
+    hint: `This can be any valid CSS background value`,
+    scope: "client",
+    type: String,
+    default: "#333",
+    config: true
+  });
+
+  game.settings.register('griddy', `itemOutlineColor`, {
+    name: `Item Outline Color`,
+    hint: `This can be any valid CSS color value`,
+    scope: "client",
+    type: String,
+    default: "#555",
+    config: true
+  });
+
+/*
+let gridSize = options.gridSize || 60
+let rows = options.rows || 8
+let cols = options.cols || 8
+let background = options.background || '#222'
+let itemBackground = options.itemBackground || '#000'
+let gridColor = options.gridColor || '#333'
+let itemOutlineColor = options.itemOutlineColor || '#555'
+*/
 });
 
 Hooks.on('ready', ()=>{
