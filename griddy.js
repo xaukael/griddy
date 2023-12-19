@@ -24,8 +24,8 @@ if ($(`div#${id}`).length)
   
 let dblClickItem = function(e){
   let item = character.items.get(this.id)
-  if (item.flags.world.position.c) {
-    let p = item.flags.world.position
+  if (item.flags.griddy.position.c) {
+    let p = item.flags.griddy.position
     return character.inventoryGrid({
       container:item.id, 
       gridSize, 
@@ -64,8 +64,8 @@ let conflicts = function(position, itemId, items){
   for (let x=0; x<position.w; x++)
     for (let y=0; y<position.h; y++)
       positions.push({...position, ...{x: position.x+x, y: position.y+y}})
-  let otherItems = items.filter(i=>i.flags.world?.position && i.id!=itemId && !i.flags.world?.position.e)
-  let filledSlots = otherItems.map(i=>{ return {...i.flags.world?.position, id: i.id}})
+  let otherItems = items.filter(i=>i.flags.griddy?.position && i.id!=itemId && !i.flags.griddy?.position.e)
+  let filledSlots = otherItems.map(i=>{ return {...i.flags.griddy?.position, id: i.id}})
   let sizeFilled = [];
   for (let slot of filledSlots.filter(c=>c.h>1 || c.w>1))
     for (let x=0; x<slot.w; x++)
@@ -117,12 +117,12 @@ let d = new Dialog({
     html.parent().css({background:background, color: 'white'})
 
     // FILTER ITEMS
-    let items = character.items.filter(i=>itemTypes.includes(i.type)&&i.flags.world?.position?.e!=true)
-    if (container) items = items.filter(i=>i.flags.world.position.n && i.flags.world.position.n==container)
-    else items = items.filter(i=>!i.flags.world.position.n)
+    let items = character.items.filter(i=>itemTypes.includes(i.type)&&i.flags.griddy?.position?.e!=true)
+    if (container) items = items.filter(i=>i.flags.griddy.position.n && i.flags.griddy.position.n==container)
+    else items = items.filter(i=>!i.flags.griddy?.position.n)
     
     // INITATE FLAGS FOR ITEMS
-    let updates = items.filter(i => itemTypes.includes(i.type) && !foundry.utils.hasProperty(i, "flags.world.position")).map((i, index)=> { return {_id: i.id, flags: { world: { position: {
+    let updates = items.filter(i => itemTypes.includes(i.type) && !foundry.utils.hasProperty(i, "flags.griddy.position")).map((i, index)=> { return {_id: i.id, flags: { griddy: { position: {
               x: index%cols,
               y: Math.floor(index/cols),
               w: 1,
@@ -136,23 +136,23 @@ let d = new Dialog({
     if (updates.length) 
       await character.updateEmbeddedDocuments("Item", updates);
     
-    let oob = items.filter(i=>foundry.utils.hasProperty(i, "flags.world.position")).filter(i=>{
-      let p = i.flags.world.position
+    let oob = items.filter(i=>foundry.utils.hasProperty(i, "flags.griddy.position")).filter(i=>{
+      let p = i.flags.griddy.position
       if (p.x+(p.w)>cols) return true;
       if (p.y+(p.h)>rows) return true;
       if (p.x<0 || p.y<0) return true 
       return false
     })
     //console.log('Out of Bounds Updates', updates)
-    updates = oob.map(i=>{ return {_id: i.id, flags:{world:{position:{x:0,y:0}}}}})
+    updates = oob.map(i=>{ return {_id: i.id, flags:{griddy:{position:{x:0,y:0}}}}})
       await character.updateEmbeddedDocuments("Item", updates);
 
     // ADD ITEMS TO THE GRID
-    let itemElements = items.reduce((a,i)=>a+=//${conflicts(i.flags.world?.position, i.id, items).length?'conflicts':''}
-           `<div id="${i.id}" name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.world?.position?.s||0}"
-           data-size="${i.flags.world?.position?.w*i.flags.world?.position?.h}" data-last-modified="${i._stats.createdTime}"
+    let itemElements = items.reduce((a,i)=>a+=//${conflicts(i.flags.griddy?.position, i.id, items).length?'conflicts':''}
+           `<div id="${i.id}" name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}"
+           data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.createdTime}"
            data-tooltip="${i.name}${i.system[systemQuanityProp]>1?` (${i.system[systemQuanityProp]})`:''}" 
-           style=" left: ${i.flags.world?.position?.x*gridSize}px; top: ${i.flags.world?.position?.y*gridSize}px; width:${i.flags.world?.position?.w*gridSize}px; height:${i.flags.world?.position?.h*gridSize}px; cursor:pointer">
+           style=" left: ${i.flags.griddy?.position?.x*gridSize}px; top: ${i.flags.griddy?.position?.y*gridSize}px; width:${i.flags.griddy?.position?.w*gridSize}px; height:${i.flags.griddy?.position?.h*gridSize}px; cursor:pointer">
            <img src="${i.img}" style="transform: translate(-50%, -50%); " >
            <span class="item-quantity" style="font-size:${gridSize/4.5}px;position: absolute; top: 2px; left: 2px; color: white; background: rgba(0, 0, 0, 0.5); padding:1px 3px; display: ${i.system[systemQuanityProp]>1?'inline':'none'}">${i.system[systemQuanityProp]}</span>
            </div>`, ``) 
@@ -163,7 +163,7 @@ let d = new Dialog({
       
       let grid = Array(rows).fill().map(()=>Array(cols).fill(1))
       let otherItems = items.filter(i=>i.id!=item.id)
-      let filledSlots = otherItems.map(i=>{ return {...i.flags.world?.position, id: i.id}})
+      let filledSlots = otherItems.map(i=>{ return {...i.flags.griddy?.position, id: i.id}})
       for (let slot of filledSlots.filter(c=>c.h>1 || c.w>1))
         for (let x=0; x<slot.w; x++)
           for (let y=0; y<slot.h; y++)
@@ -200,8 +200,8 @@ let d = new Dialog({
     html.find('div.item')
     .dblclick(function(e){
       let item = character.items.get(this.id)
-      if (item.flags.world.position.c) {
-        let p = item.flags.world.position
+      if (item.flags.griddy.position.c) {
+        let p = item.flags.griddy.position
         return character.griddy({
           container:item.id, 
           gridSize, 
@@ -215,18 +215,18 @@ let d = new Dialog({
     .contextmenu(rightClickItem)
     .bind("wheel", async function(e) {
       let item = character.items.get(this.id);
-      let position = foundry.utils.deepClone(item.flags.world.position)
+      let position = foundry.utils.deepClone(item.flags.griddy.position)
 
       if (e.ctrlKey && resizing) 
         if (e.originalEvent.wheelDelta>0)
-          return item.setFlag('world', 'position.h', position.h+1)
+          return item.setFlag('griddy', 'position.h', position.h+1)
         else 
-          return item.setFlag('world', 'position.h', Math.max(position.h-1,1))
+          return item.setFlag('griddy', 'position.h', Math.max(position.h-1,1))
       if (e.shiftKey && resizing) 
         if (e.originalEvent.wheelDelta>0)
-          return item.setFlag('world', 'position.w', position.w+1)
+          return item.setFlag('griddy', 'position.w', position.w+1)
         else 
-          return item.setFlag('world', 'position.w', Math.max(position.w-1,1))
+          return item.setFlag('griddy', 'position.w', Math.max(position.w-1,1))
       if (position.w==1 && position.h==1) return;
       const itemRect = this.getBoundingClientRect();
       const inventory = e.target.closest(`div.${id}`);
@@ -255,7 +255,7 @@ let d = new Dialog({
           return ui.notifications.warn("cannot rotate: out of bounds")
         return ui.notifications.warn("cannot rotate: conflict")
       }
-      await item.setFlag('world', 'position', position)
+      await item.setFlag('griddy', 'position', position)
       $(this).css({
         left: position.x*gridSize+'px', 
         top: position.y*gridSize+'px', 
@@ -362,7 +362,7 @@ let d = new Dialog({
       let y = Math.floor((e.clientY - inventoryRect.top)/gridSize)-(data.offsetY|0)
       
       let item = await fromUuid(data.uuid)
-      let position = foundry.utils.deepClone(item.flags.world?.position) || {x:0,y:0,w:1,h:1,e:false}
+      let position = foundry.utils.deepClone(item.flags.griddy?.position) || {x:0,y:0,w:1,h:1,e:false}
       position.x = x
       position.y = y
       position.n = n
@@ -371,14 +371,14 @@ let d = new Dialog({
       $(this).append(test)
       let overlapping = [...$(this).find('div.item')].filter((e)=>elementsOverlap(test[0], e) && !(e.id == item.id && !data.split))
       $(this).find('div.test').remove()
-      //if (overlapping.map(e=>e.id).includes(item.id)) return await item.setFlag('world', 'position', position)
+      //if (overlapping.map(e=>e.id).includes(item.id)) return await item.setFlag('griddy', 'position', position)
       let combined = false
       if (overlapping.length) {
         render = false
         for (let e of overlapping) {
           let i = character.items.get(e.id)
-          if (i.getFlag('world', 'position.c')) {
-            await item.setFlag('world', 'position.n', i.id)
+          if (i.getFlag('griddy', 'position.c')) {
+            await item.setFlag('griddy', 'position.n', i.id)
             render = true
             return d.render(true)
           }
@@ -410,20 +410,20 @@ let d = new Dialog({
         await item.update({[`system.${systemQuanityProp}`]:  foundry.utils.getProperty(item, `system.${systemQuanityProp}`)-data.quantity}, {render:false})
         let newItem = item.toObject()
         foundry.utils.setProperty(newItem, `system.${systemQuanityProp}`, data.quantity)
-        foundry.utils.setProperty(newItem, "flags.world.position", position)
+        foundry.utils.setProperty(newItem, "flags.griddy.position", position)
         await character.createEmbeddedDocuments("Item", [newItem])
         render = true
         return d.render(true)
       }
       if (!data.uuid.includes(character.id) || !data.uuid.startsWith('Actor')) {
         let newItem = item.toObject()
-        foundry.utils.setProperty(newItem, "flags.world.position", position)
+        foundry.utils.setProperty(newItem, "flags.griddy.position", position)
         let docs = await character.createEmbeddedDocuments("Item", [newItem])
         if (item.parent?.permission > 2 && docs.length)
           item.delete()
         return
       }
-      return await item.setFlag('world', 'position', position)
+      return await item.setFlag('griddy', 'position', position)
     })
     
     // QUANTITY SPAN EVENTS
@@ -454,7 +454,7 @@ let d = new Dialog({
     })
     
     html.parent().find('div.dialog-buttons').remove();
-    Hooks.call('renderInventoryGrid', d, html, options)
+    Hooks.call('renderGriddy', d, html, options)
     //console.log('end render ', id)
 
     // STACK LIMIT HANDLING
@@ -470,7 +470,7 @@ let d = new Dialog({
       quantity-=stackLimit
       let newItem = item.toObject()
       foundry.utils.setProperty(newItem, `system.${systemQuanityProp}`, quantity)
-      foundry.utils.setProperty(newItem, `flags.world.position`, {...item.getFlag('world', 'position'), ...{x:0,y:0}})
+      foundry.utils.setProperty(newItem, `flags.griddy.position`, {...item.getFlag('griddy', 'position'), ...{x:0,y:0}})
       await character.createEmbeddedDocuments("Item", [newItem]);
       render = true
       d.render(true)
@@ -487,11 +487,11 @@ let d = new Dialog({
     })
     for (let e of conflictingElements) {
       let item = character.items.get(e.id)
-      let position = item.getFlag('world', 'position')
+      let position = item.getFlag('griddy', 'position')
       let newPosition = testPosition(position, item)
       
       if (JSON.stringify(position) == JSON.stringify(newPosition)) continue;
-      return item.setFlag('world', 'position', newPosition)
+      return item.setFlag('griddy', 'position', newPosition)
     }
   },
   close: (html)=>{
@@ -506,7 +506,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
   .after($(`<a class="drag-lock" data-tooltip="Drag Lock"><i class="fa-solid fa-left-right"></i></a>`).click( function(e){
      //html.find('button').click(function(){
     app.element.find(`div.${id} > div.item`).each(function(){
-      let p = character.items.get(this.id).getFlag('world', 'position')
+      let p = character.items.get(this.id).getFlag('griddy', 'position')
       $(this).css({
         left: 'unset',
         top: 'unset',
@@ -526,7 +526,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
       let itemRect = e.getBoundingClientRect()
       let x = Math.floor((itemRect.x - gridRect.x)/gridSize)
       let y = Math.floor((itemRect.y - gridRect.y)/gridSize)
-      return {_id: e.id, flags: { world: { position: {x,y}}}}
+      return {_id: e.id, flags: { griddy: { position: {x,y}}}}
     })
     character.updateEmbeddedDocuments("Item", updates)
     
@@ -571,10 +571,10 @@ Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
       let item = app.document
       let changeDialog = new Dialog({title:`${item.name} Position`,content:'', buttons:{},
         render: async (html)=>{
-          let p = item.flags.world?.position
+          let p = item.flags.griddy?.position
           if (!p) {
-            await item.setFlag('world', 'position', {x:0, y:0, w:1, h:1, c: false, n:0, s: 0})
-            p = item.flags.world?.position
+            await item.setFlag('griddy', 'position', {x:0, y:0, w:1, h:1, c: false, n:0, s: 0})
+            p = item.flags.griddy?.position
           }
           
           let table = `<style>div.position-form span {line-height: var(--form-field-height);}</style>
@@ -598,7 +598,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, arr)=>{
             let position = [...html.find('input')].reduce((a, e)=>{
               return Object.assign(a, {[e.getAttribute('name')]: e.type=='number'?Number(e.value):e.checked})
             },{})
-            item.setFlag('world', 'position', position)
+            item.setFlag('griddy', 'position', position)
           })
           html.find('input').focusin(function(){this.select()}).on('keydown', function(e){
             e.stopPropagation()

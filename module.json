@@ -3,10 +3,10 @@
     "id": "griddy",
     "name": "griddy",
     "title": "Griddy",
-    "description": "System agnostic grid based inventory",
+    "description": "System agnostic grid based actor item inventory UI",
     "author": "Xaukael",
     "authors": [{"name":"Xaukael"}],
-    "version": "1.0.0",
+    "version": "1.0.1",
     "minimumCoreVersion": "10",
     "compatibleCoreVersion": "11",
     "compatibility": {
@@ -14,7 +14,7 @@
         "verified": "11"
       },
     "scripts": ["griddy.js"],
-		"styles": [],
+    "styles": [],
     "url": "https://github.com/xaukael/griddy/",
     "manifest": "https://github.com/xaukael/griddy/raw/main/module.json",
     "download": "https://github.com/xaukael/griddy/raw/main/griddy.zip"
