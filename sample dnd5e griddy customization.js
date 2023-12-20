@@ -67,6 +67,13 @@ Hooks.on('renderGriddy', (app, html, options)=>{
 Hooks.on('ready', ()=>{
 
   if (game.system.id != 'dnd5e') return true
+
+  Hooks.on('renderItemSheet', (app, html)=>{
+    let $button = $(`<button>Use Item</button>`).click(function(){
+      app.object.use()
+    })
+    html.find('div.item-properties').prepend($button)
+  })
   
   Hooks.on('preUpdateItem', (item, updates)=>{
     if (!foundry.utils.hasProperty(updates, "system.equipped")) return
