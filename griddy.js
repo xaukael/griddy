@@ -8,13 +8,13 @@ let character = this
 
 let itemTypes = game.settings.get('griddy', 'itemTypes').split(',').map(t=>t.trim())
 let systemQuanityProp = game.settings.get('griddy', `systemQuanityProp`)
-let gridSize = options.gridSize || game.settings.get('griddy', `gridSize`)
+let gridSize = options.gridSize || game.user.getFlag('griddy', 'gridSize') || game.settings.get('griddy', `gridSize`)
 let rows = options.rows || character.getFlag('griddy', 'config.rows') || 8
 let cols = options.cols || character.getFlag('griddy', 'config.cols') || 10
-let background = options.background || game.settings.get('griddy', `background`)
-let itemBackground = options.itemBackground || game.settings.get('griddy', `itemBackground`)
-let gridColor = options.gridColor || game.settings.get('griddy', `gridColor`)
-let itemOutlineColor = options.itemOutlineColor || game.settings.get('griddy', `itemOutlineColor`)
+let background = options.background || game.user.getFlag('griddy', 'background') || game.settings.get('griddy', `background`)
+let itemBackground = options.itemBackground || game.user.getFlag('griddy', 'itemBackground') || game.settings.get('griddy', `itemBackground`)
+let gridColor = options.gridColor || game.user.getFlag('griddy', 'gridColor') || game.settings.get('griddy', `gridColor`)
+let itemOutlineColor = options.itemOutlineColor || game.user.getFlag('griddy', 'itemOutlineColor') || game.settings.get('griddy', `itemOutlineColor`)
 let resizing = game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false||options.resizing
 let container = options.container
 let top = options.top
@@ -117,7 +117,8 @@ let d = new Dialog({
     if (!render) return //console.log(`${id} render cancelled`);
     //console.log(`${id} render`)
     // STYLE THE DIALOG SECTION - COLOR MAY HAVE TO GO
-    html.parent().css({background:background, color: 'white'})
+    console.log(html[0])
+    $(html[0]).css({background:background, color: 'white'})
     html[0].innerHTML += `<div class="${id}" style="height: ${rows*gridSize+1}px; width:${cols*gridSize+1}px;" data-grid-size="${gridSize}" data-rows="${rows}" data-cols="${cols}" data-color="${gridColor}"></div>`
 
     // FILTER ITEMS
@@ -175,26 +176,26 @@ let d = new Dialog({
       for (let i of filledSlots)
         grid[i.y][i.x] = 0
       p = foundry.utils.deepClone(position)
-      console.log(grid.join('\n'))
+      //console.log(grid.join('\n'))
       let gridString = grid.map(a=>a.join('')).join('')
       let {w, h} = p
       let pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
       let match = gridString.match(pattern)
-      console.log(match)
+      //console.log(match)
       if (match) {
         let x = match.index%cols
         let y = Math.floor(match.index/cols)
-        console.log('match 1', x,y,w,h)
+        //console.log('match 1', x,y,w,h)
         return Object.assign(p, {x, y, w, h})
       }
       [w, h] = [h, w]; // try rotated-
       pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
       match = gridString.match(pattern)
-      console.log(match)
+      //console.log(match)
       if (match) {
         let x = match.index%cols
         let y = Math.floor(match.index/cols)
-        console.log('match 1', x,y,w,h)
+        //console.log('match 1', x,y,w,h)
         return Object.assign(p, {x, y, w, h})
       }
       return position
@@ -653,7 +654,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
             if (position.c) position.s = 0
             await item.setFlag('griddy', 'position', position)
             ui.notifications.info(`Updated ${item.name} Griddy flags: ${JSON.stringify(position)}`)
-            console.log(`${item.name} (${item.id}) flags updated`, position)
+            //console.log(`${item.name} (${item.id}) flags updated`, position)
           })
           html.find('input').focusin(function(){this.select()}).on('keydown', function(e){
             e.stopPropagation()
@@ -709,7 +710,8 @@ Hooks.once("init", ()=>{
     scope: "client",
     type: Number,
     default: "50",
-    config: true
+    config: true,
+    onChange: value => { game.user.setFlag('griddy', 'gridSize', value) }
   });
 
   game.settings.register('griddy', `background`, {
@@ -718,7 +720,8 @@ Hooks.once("init", ()=>{
     scope: "client",
     type: String,
     default: "#222",
-    config: true
+    config: true,
+    onChange: value => { game.user.setFlag('griddy', 'background', value) }
   });
   
   game.settings.register('griddy', `itemBackground`, {
@@ -727,16 +730,18 @@ Hooks.once("init", ()=>{
     scope: "client",
     type: String,
     default: "#000",
-    config: true
+    config: true,
+    onChange: value => { game.user.setFlag('griddy', 'itemBackground', value) }
   });
 
   game.settings.register('griddy', `gridColor`, {
-    name: `Item Background`,
+    name: `Grid Color`,
     hint: `This can be any valid CSS background value`,
     scope: "client",
     type: String,
     default: "#333",
-    config: true
+    config: true,
+    onChange: value => { game.user.setFlag('griddy', 'gridColor', value) }
   });
 
   game.settings.register('griddy', `itemOutlineColor`, {
@@ -745,7 +750,8 @@ Hooks.once("init", ()=>{
     scope: "client",
     type: String,
     default: "#555",
-    config: true
+    config: true,
+    onChange: value => { game.user.setFlag('griddy', 'itemOutlineColor', value) }
   });
 
 /*
