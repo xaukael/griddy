@@ -4,7 +4,7 @@
  * @param {object} options - settings for the grid
  */
 Actor.prototype.griddy = function(options={}) {
-character = this
+let character = this
 
 let itemTypes = game.settings.get('griddy', 'itemTypes').split(',').map(t=>t.trim())
 let systemQuanityProp = game.settings.get('griddy', `systemQuanityProp`)
@@ -21,7 +21,7 @@ let top = options.top
 let left = options.left
 let render = true
 options = {gridSize, gridColor, rows, cols, background, itemBackground, itemOutlineColor, resizing, container, top, left}
-console.log(resizing)
+
 let id = `inventory-grid-${character.id}${container?`-${container}`:''}`;
 if ($(`div#${id}`).length) 
   return ui.windows[$(`div#${id}`).data().appid].close();
@@ -111,14 +111,14 @@ let d = new Dialog({
   div.${id} > div.item-drag-preview {
     outline: 2px solid ${itemOutlineColor}; outline-offset: -2px; position: absolute; pointer-events: none;
   }
-  </style>
-  <div class="${id}" style="height: ${rows*gridSize+1}px; width:${cols*gridSize+1}px;" data-grid-size="${gridSize}" data-rows="${rows}" data-cols="${cols}" data-color="${gridColor}"></div>`,
+  </style>`,
   buttons: {},
   render: async (html)=>{
     if (!render) return //console.log(`${id} render cancelled`);
     //console.log(`${id} render`)
     // STYLE THE DIALOG SECTION - COLOR MAY HAVE TO GO
     html.parent().css({background:background, color: 'white'})
+    html[0].innerHTML += `<div class="${id}" style="height: ${rows*gridSize+1}px; width:${cols*gridSize+1}px;" data-grid-size="${gridSize}" data-rows="${rows}" data-cols="${cols}" data-color="${gridColor}"></div>`
 
     // FILTER ITEMS
     let items = character.items.filter(i=>itemTypes.includes(i.type)&&i.flags.griddy?.position?.e!=true)
@@ -506,9 +506,9 @@ let d = new Dialog({
 )
 
 Hooks.once('renderDialog', (app, html, options)=>{
-  html.find('header > h4.window-title')
-  .after($(`<a class="drag-lock" data-tooltip="Drag Lock"><i class="fa-solid fa-left-right"></i></a>`).click( function(e){
-     //html.find('button').click(function(){
+  let header = html.find('header > h4.window-title')
+  let autoSort = $(`<a class="auto-sort" data-tooltip="Compress"><i class="fa-solid fa-left-right"></i></a>`)
+  autoSort.click( function(e){
     app.element.find(`div.${id} > div.item`).each(function(){
       let p = character.items.get(this.id).getFlag('griddy', 'position')
       $(this).css({
@@ -534,8 +534,48 @@ Hooks.once('renderDialog', (app, html, options)=>{
     })
     character.updateEmbeddedDocuments("Item", updates)
     
-  }).dblclick(function(e){e.stopPropagation();})
-);
+  })
+  let gridConfig = $(`<a class="griddy-config" data-tooltip="Grid Config"><i class="fa-solid fa-cog"></i></a>`)
+  gridConfig.click( function(e){
+    let actor = app.object
+    let configDialog = new Dialog({title:`${actor.name} Grid Config`,content:'', buttons:{},
+      render: async (html)=>{
+        let p = actor.flags.griddy?.config
+        if (!p) {
+          await actor.setFlag('griddy', 'config', {rows: 6, cols: 10})
+          p = actor.flags.griddy?.config
+        }
+        let table = `<style>div.position-form span {line-height: var(--form-field-height);}</style>
+        <div class="position-form" style="display:grid; grid-template-columns: repeat(4, 1fr); column-gap: 1em; row-gap: .2em">`
+        table += `
+        <span>columns:</span><input  name="cols" type="number" value="${p.cols||1}" autofocus></input>
+        <span>rows:</span><input  name="rows" type="number" value="${p.rows||1}"></input>`
+        table+=`</div><button style="margin-top: .2em">Save</button>`
+        html[0].innerHTML = table
+        html.find('button').click(async function(){
+          let config = [...html.find('input')].reduce((a, e)=>{
+            return Object.assign(a, {[e.getAttribute('name')]: Number(e.value)})
+          },{})
+          await actor.setFlag('griddy', 'config', config)
+          ui.notifications.info(`Updated ${actor.name} Griddy flags: ${JSON.stringify(config)}`)
+          d.close()
+          configDialog.close()
+        }).on('keydown', function(e){
+          e.stopPropagation()
+          if (e.key=='Enter') this.click()
+        })
+        html.find('input').focusin(function(){this.select()}).on('keydown', function(e){
+          e.stopPropagation()
+          if (e.key=='Enter') html.find('button').click()
+        })
+        
+      },
+      close: ()=>{  return;}
+      },{top: e.clientY , left: e.clientX, width: 250, height: 'auto'}).render(true)
+    
+  });
+  header.after(gridConfig).after(autoSort)
+
 });
 d.object = this
 character.apps[d.appId] = d;
@@ -551,46 +591,7 @@ Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
     "icon": "ffa-solid fa-table-cells",
     onclick: (e)=>{ app.object.griddy() }
   })
-  if (game.user.isGM)
-  buttons.unshift({
-    class: "griddy-config",
-    icon: "fa-solid fa-up-down-left-right",
-    label: "",
-    onclick: async (e)=>{
-      let actor = app.document
-      let changeDialog = new Dialog({title:`${actor.name} Grid Config`,content:'', buttons:{},
-        render: async (html)=>{
-          let p = actor.flags.griddy?.config
-          if (!p) {
-            await actor.setFlag('griddy', 'config', {rows: 6, cols: 10})
-            p = actor.flags.griddy?.config
-          }
-          let table = `<style>div.position-form span {line-height: var(--form-field-height);}</style>
-          <div class="position-form" style="display:grid; grid-template-columns: repeat(4, 1fr); column-gap: 1em; row-gap: .2em">`
-          table += `
-          <span>columns:</span><input  name="cols" type="number" value="${p.cols||1}"></input>
-          <span>rows:</span><input  name="rows" type="number" value="${p.rows||1}"></input>`
-          table+=`</div><button style="margin-top: .2em">Save</button>`
-          html[0].innerHTML = table
-          html.find('button').click(async function(){
-            let config = [...html.find('input')].reduce((a, e)=>{
-              return Object.assign(a, {[e.getAttribute('name')]: Number(e.value)})
-            },{})
-            await actor.setFlag('griddy', 'config', config)
-            ui.notifications.info(`Updated ${actor.name} Griddy flags: ${JSON.stringify(config)}`)
-            console.log(`${actor.name} (${actor.id}) flags updated`, config)
-          })
-          html.find('input').focusin(function(){this.select()}).on('keydown', function(e){
-            e.stopPropagation()
-            if (e.key=='Enter') html.find('button').click()
-          })
-        },
-        close: ()=>{ 
-          return;
-        }
-      },{top: e.clientY , left: e.clientX, width: 250, height: 'auto'}).render(true)
-    }
-  })
+  
 })
 
 Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
