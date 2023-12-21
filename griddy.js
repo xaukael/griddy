@@ -788,11 +788,11 @@ Hooks.on('ready', ()=>{
 
 Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
   buttons.unshift({
-    "label": "Inventory Grid",
+    "label": "Griddy",
     "class": "griddy",
     "icon": "fas fa-table-cells",
     onclick: (e)=>{
-      app.object.griddy()
+      app.actor.griddy()
     }
   })
 })
