@@ -15,7 +15,7 @@ let background = options.background || game.user.getFlag('griddy', 'background')
 let itemBackground = options.itemBackground || game.user.getFlag('griddy', 'itemBackground') || game.settings.get('griddy', `itemBackground`)
 let gridColor = options.gridColor || game.user.getFlag('griddy', 'gridColor') || game.settings.get('griddy', `gridColor`)
 let itemOutlineColor = options.itemOutlineColor || game.user.getFlag('griddy', 'itemOutlineColor') || game.settings.get('griddy', `itemOutlineColor`)
-let resizing = game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false||options.resizing
+let resizing = game.settings.get('griddy', 'itemResizing')=="GM"?game.user.isGM:false||options.resizing
 let container = options.container
 let top = options.top
 let left = options.left
@@ -536,6 +536,8 @@ Hooks.once('renderDialog', (app, html, options)=>{
     character.updateEmbeddedDocuments("Item", updates)
     
   })
+  header.after(autoSort)
+  if (!(game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false)) return
   let gridConfig = $(`<a class="griddy-config" data-tooltip="Grid Config"><i class="fa-solid fa-cog"></i></a>`)
   gridConfig.click( function(e){
     let actor = app.object
@@ -575,7 +577,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
       },{top: e.clientY , left: e.clientX, width: 250, height: 'auto'}).render(true)
     
   });
-  header.after(gridConfig).after(autoSort)
+  html.find('a.auto-sort').after(gridConfig)
 
 });
 d.object = this
@@ -614,7 +616,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
       return item.delete()
     }
   })
-  if (game.settings.get('griddy', 'resizing'))
+  if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false)
   buttons.unshift({
     class: "move-item",
     icon: "fa-solid fa-up-down-left-right",
@@ -694,7 +696,18 @@ Hooks.once("init", ()=>{
   });
 
   game.settings.register('griddy', `resizing`, {
-    name: `Resizing`,
+    name: `Grid Resizing`,
+    hint: `Who can resize the actor's grid`,
+    scope: "world",
+    type: String,
+    default: "GM",
+    choices: {"GM":"GM", "Everyone":"Everyone"},
+    config: true,
+    restricted: true 
+  });
+
+  game.settings.register('griddy', `itemResizing`, {
+    name: `Item Resizing`,
     hint: `Who can resize items`,
     scope: "world",
     type: String,
