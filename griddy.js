@@ -509,6 +509,7 @@ let d = new Dialog({
 )
 
 Hooks.once('renderDialog', (app, html, options)=>{
+  actor = app.actor
   let header = html.find('header > h4.window-title')
   let autoSort = $(`<a class="auto-sort" data-tooltip="Compress"><i class="fa-solid fa-left-right"></i></a>`)
   autoSort.click( function(e){
@@ -542,7 +543,6 @@ Hooks.once('renderDialog', (app, html, options)=>{
   if (!(game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false)) return
   let gridConfig = $(`<a class="griddy-config" data-tooltip="Grid Config"><i class="fa-solid fa-cog"></i></a>`)
   gridConfig.click( function(e){
-    let actor = app.object
     let configDialog = new Dialog({title:`${actor.name} Grid Config`,content:'', buttons:{},
       render: async (html)=>{
         let p = actor.flags.griddy?.config
@@ -594,20 +594,20 @@ Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
     "label": "Griddy",
     "class": "griddy",
     "icon": "ffa-solid fa-table-cells",
-    onclick: (e)=>{ app.object.griddy() }
+    onclick: (e)=>{ app.actor.griddy() }
   })
   
 })
 
 Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
-  if (app.item.uuid.startsWith('Actor'))
+  let item = app.item
+  if (item.uuid.startsWith('Actor'))
   buttons.unshift({
     class: "delete-item",
     icon: "fas fa-trash",
     label: "Delete",
     onclick: async (e)=>{
       event.preventDefault();
-      let item = app.item
       let doDelete = await Dialog.wait({title: `Delete ${item.name}?`, content: ``,
         buttons: {
           yes: {label: "Delete", callback:()=>{return true}},
@@ -624,7 +624,6 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
     icon: "fa-solid fa-up-down-left-right",
     label: "Position",
     onclick: async (e)=>{
-      let item = app.item
       let changeDialog = new Dialog({title:`${item.name} Position`,content:'', buttons:{},
         render: async (html)=>{
           let p = item.flags.griddy?.position
@@ -635,7 +634,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
           
           let table = `<style>div.position-form span {line-height: var(--form-field-height);}</style>
           <div class="position-form" style="display:grid; grid-template-columns: repeat(4, 1fr); column-gap: 1em; row-gap: .2em">`
-          if (app.object.uuid.startsWith('Actor'))
+          if (item.uuid.startsWith('Actor'))
             table += `
           <span>x (left):</span><input  name="x" type="number" value="${p.x}"></input>
           <span>y (top):</span><input  name="y" type="number" value="${p.y}"></input>`
