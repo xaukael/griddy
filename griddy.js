@@ -156,7 +156,7 @@ let d = new Dialog({
 
     // ADD ITEMS TO THE GRID
     let itemElements = items.reduce((a,i)=>a+=//${conflicts(i.flags.griddy?.position, i.id, items).length?'conflicts':''}
-           `<div id="${i.id}" name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}"
+           `<div id="${i.id}" name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}" data-type="${i.type}"
            data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.createdTime}"
            data-tooltip="${i.name}${i.system[systemQuanityProp]>1?` (${i.system[systemQuanityProp]})`:''}" 
            style=" left: ${i.flags.griddy?.position?.x*gridSize}px; top: ${i.flags.griddy?.position?.y*gridSize}px; width:${i.flags.griddy?.position?.w*gridSize}px; height:${i.flags.griddy?.position?.h*gridSize}px; cursor:pointer">
@@ -509,7 +509,7 @@ let d = new Dialog({
 )
 
 Hooks.once('renderDialog', (app, html, options)=>{
-  actor = app.actor
+  let actor = app.object
   let header = html.find('header > h4.window-title')
   let autoSort = $(`<a class="auto-sort" data-tooltip="Compress"><i class="fa-solid fa-left-right"></i></a>`)
   autoSort.click( function(e){
