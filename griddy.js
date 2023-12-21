@@ -540,7 +540,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
     
   })
   header.after(autoSort)
-  if (!(game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false)) return
+  if (!(game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)) return
   let gridConfig = $(`<a class="griddy-config" data-tooltip="Grid Config"><i class="fa-solid fa-cog"></i></a>`)
   gridConfig.click( function(e){
     let configDialog = new Dialog({title:`${actor.name} Grid Config`,content:'', buttons:{},
