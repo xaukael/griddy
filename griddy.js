@@ -16,6 +16,7 @@ let itemBackground = options.itemBackground || game.user.getFlag('griddy', 'item
 let gridColor = options.gridColor || game.user.getFlag('griddy', 'gridColor') || game.settings.get('griddy', `gridColor`)
 let itemOutlineColor = options.itemOutlineColor || game.user.getFlag('griddy', 'itemOutlineColor') || game.settings.get('griddy', `itemOutlineColor`)
 let resizing = game.settings.get('griddy', 'itemResizing')=="GM"?game.user.isGM:false||options.resizing
+let showOneQuantity = game.user.getFlag('griddy', 'showOneQuantity') || game.settings.get('griddy', 'showOneQuantity')
 let container = options.container
 let top = options.top
 let left = options.left
@@ -108,6 +109,7 @@ let d = new Dialog({
     left:50%; top:50%; position:absolute;padding:2px;
     pointer-events: none;
   }
+  ${showOneQuantity?`div.${id} > div.item > span.item-quantity { display: inline !important;}`:''}
   div.${id} > div.item-drag-preview {
     outline: 2px solid ${itemOutlineColor}; outline-offset: -2px; position: absolute; pointer-events: none;
   }
@@ -695,6 +697,16 @@ Hooks.once("init", ()=>{
     restricted: true 
   });
 
+  game.settings.register('griddy', 'showOneQuantity', {
+    name: `Show Quantity of 1`,
+    hint: `Show quanitity of item even when it is 1`,
+    scope: "client",
+    type: Boolean,
+    default: false,
+    config: true,
+    onChange: value => { game.user.setFlag('griddy', 'showOneQuantity', value) }
+  });
+
   game.settings.register('griddy', `resizing`, {
     name: `Grid Resizing`,
     hint: `Who can resize the actor's grid`,
@@ -767,15 +779,6 @@ Hooks.once("init", ()=>{
     onChange: value => { game.user.setFlag('griddy', 'itemOutlineColor', value) }
   });
 
-/*
-let gridSize = options.gridSize || 60
-let rows = options.rows || 8
-let cols = options.cols || 8
-let background = options.background || '#222'
-let itemBackground = options.itemBackground || '#000'
-let gridColor = options.gridColor || '#333'
-let itemOutlineColor = options.itemOutlineColor || '#555'
-*/
 });
 
 Hooks.on('ready', ()=>{

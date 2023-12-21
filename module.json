@@ -6,7 +6,7 @@
     "description": "System agnostic grid based actor item inventory UI",
     "author": "Xaukael",
     "authors": [{"name":"Xaukael"}],
-    "version": "1.0.4",
+    "version": "1.0.5",
     "minimumCoreVersion": "10",
     "compatibleCoreVersion": "11",
     "compatibility": {
