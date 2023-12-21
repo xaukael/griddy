@@ -15,7 +15,7 @@ let background = options.background || game.user.getFlag('griddy', 'background')
 let itemBackground = options.itemBackground || game.user.getFlag('griddy', 'itemBackground') || game.settings.get('griddy', `itemBackground`)
 let gridColor = options.gridColor || game.user.getFlag('griddy', 'gridColor') || game.settings.get('griddy', `gridColor`)
 let itemOutlineColor = options.itemOutlineColor || game.user.getFlag('griddy', 'itemOutlineColor') || game.settings.get('griddy', `itemOutlineColor`)
-let resizing = game.settings.get('griddy', 'itemResizing')=="GM"?game.user.isGM:false||options.resizing
+let resizing = game.settings.get('griddy', 'itemResizing')=="GM"?game.user.isGM:true||options.resizing
 let showOneQuantity = game.user.getFlag('griddy', 'showOneQuantity') || game.settings.get('griddy', 'showOneQuantity')
 let container = options.container
 let top = options.top
@@ -618,7 +618,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
       return item.delete()
     }
   })
-  if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:false)
+  if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)
   buttons.unshift({
     class: "move-item",
     icon: "fa-solid fa-up-down-left-right",
