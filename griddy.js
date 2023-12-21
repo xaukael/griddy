@@ -158,10 +158,10 @@ let d = new Dialog({
     let itemElements = items.reduce((a,i)=>a+=//${conflicts(i.flags.griddy?.position, i.id, items).length?'conflicts':''}
            `<div id="${i.id}" name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}" data-type="${i.type}"
            data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.createdTime}"
-           data-tooltip="${i.name}${i.system[systemQuanityProp]>1?` (${i.system[systemQuanityProp]})`:''}" 
+           data-tooltip="${i.name}${foundry.utils.getProperty(i.system, systemQuanityProp)>1?` (${foundry.utils.getProperty(i.system, systemQuanityProp)})`:''}" 
            style=" left: ${i.flags.griddy?.position?.x*gridSize}px; top: ${i.flags.griddy?.position?.y*gridSize}px; width:${i.flags.griddy?.position?.w*gridSize}px; height:${i.flags.griddy?.position?.h*gridSize}px; cursor:pointer">
            <img src="${i.img}" style="transform: translate(-50%, -50%); " >
-           <span class="item-quantity" style="font-size:${gridSize/4.5}px;position: absolute; top: 2px; left: 2px; color: white; background: rgba(0, 0, 0, 0.5); padding:1px 3px; display: ${i.system[systemQuanityProp]>1?'inline':'none'}">${i.system[systemQuanityProp]}</span>
+           <span class="item-quantity" style="font-size:${gridSize/4.5}px;position: absolute; top: 2px; left: 2px; color: white; background: rgba(0, 0, 0, 0.5); padding:1px 3px; display: ${foundry.utils.getProperty(i.system, systemQuanityProp)>1?'inline':'none'}">${foundry.utils.getProperty(i.system, systemQuanityProp)}</span>
            </div>`, ``) 
     html.find(`div.${id}`).html(itemElements);
     
