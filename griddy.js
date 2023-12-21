@@ -600,14 +600,14 @@ Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
 })
 
 Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
-  if (app.object.uuid.startsWith('Actor'))
+  if (app.item.uuid.startsWith('Actor'))
   buttons.unshift({
     class: "delete-item",
     icon: "fas fa-trash",
     label: "Delete",
     onclick: async (e)=>{
       event.preventDefault();
-      let item = app.document
+      let item = app.item
       let doDelete = await Dialog.wait({title: `Delete ${item.name}?`, content: ``,
         buttons: {
           yes: {label: "Delete", callback:()=>{return true}},
@@ -624,7 +624,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
     icon: "fa-solid fa-up-down-left-right",
     label: "Position",
     onclick: async (e)=>{
-      let item = app.document
+      let item = app.item
       let changeDialog = new Dialog({title:`${item.name} Position`,content:'', buttons:{},
         render: async (html)=>{
           let p = item.flags.griddy?.position
