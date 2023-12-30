@@ -113,15 +113,16 @@ let d = new Dialog({
   div.${id} > div.item-drag-preview {
     outline: 2px solid ${itemOutlineColor}; outline-offset: -2px; position: absolute; pointer-events: none;
   }
-  </style>`,
+  </style>
+  <div class="${id}" style="height: ${rows*gridSize+1}px; width:${cols*gridSize+1}px;" data-grid-size="${gridSize}" data-rows="${rows}" data-cols="${cols}" data-color="${gridColor}"></div>`,
   buttons: {},
   render: async (html)=>{
     if (!render) return //console.log(`${id} render cancelled`);
     //console.log(`${id} render`)
     // STYLE THE DIALOG SECTION - COLOR MAY HAVE TO GO
-    console.log(html[0])
-    $(html[0]).css({background:background, color: 'white'})
-    html[0].innerHTML += `<div class="${id}" style="height: ${rows*gridSize+1}px; width:${cols*gridSize+1}px;" data-grid-size="${gridSize}" data-rows="${rows}" data-cols="${cols}" data-color="${gridColor}"></div>`
+    //console.log(html[0])
+    $(html[0]).parent().css({background:background, color: 'white'})
+    //html[0].innerHTML += 
 
     // FILTER ITEMS
     let items = character.items.filter(i=>itemTypes.includes(i.type)&&i.flags.griddy?.position?.e!=true)
@@ -156,7 +157,7 @@ let d = new Dialog({
 
     // ADD ITEMS TO THE GRID
     let itemElements = items.reduce((a,i)=>a+=//${conflicts(i.flags.griddy?.position, i.id, items).length?'conflicts':''}
-           `<div id="${i.id}" name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}" data-type="${i.type}"
+           `<div id="${i.id}" data-name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}" data-type="${i.type}"
            data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.createdTime}"
            data-tooltip="${i.name}${foundry.utils.getProperty(i.system, systemQuanityProp)>1?` (${foundry.utils.getProperty(i.system, systemQuanityProp)})`:''}" 
            style=" left: ${i.flags.griddy?.position?.x*gridSize}px; top: ${i.flags.griddy?.position?.y*gridSize}px; width:${i.flags.griddy?.position?.w*gridSize}px; height:${i.flags.griddy?.position?.h*gridSize}px; cursor:pointer">
@@ -175,28 +176,24 @@ let d = new Dialog({
         for (let x=0; x<slot.w; x++)
           for (let y=0; y<slot.h; y++)
             filledSlots.push({...slot, ...{x: slot.x+x, y: slot.y+y}})
-      for (let i of filledSlots)
-        grid[i.y][i.x] = 0
+      for (let i of filledSlots) grid[i.y][i.x] = 0
       p = foundry.utils.deepClone(position)
-      //console.log(grid.join('\n'))
-      let gridString = grid.map(a=>a.join('')).join('')
+      let gridString = grid.map(a=>a.join('')).join('0')
       let {w, h} = p
       let pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
       let match = gridString.match(pattern)
-      //console.log(match)
       if (match) {
-        let x = match.index%cols
-        let y = Math.floor(match.index/cols)
+        let x = match.index%(cols+1)
+        let y = Math.floor(match.index/(cols+1))
         //console.log('match 1', x,y,w,h)
         return Object.assign(p, {x, y, w, h})
       }
       [w, h] = [h, w]; // try rotated-
       pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
       match = gridString.match(pattern)
-      //console.log(match)
       if (match) {
-        let x = match.index%cols
-        let y = Math.floor(match.index/cols)
+        let x = match.index%(cols+1)
+        let y = Math.floor(match.index/(cols+1))
         //console.log('match 1', x,y,w,h)
         return Object.assign(p, {x, y, w, h})
       }
@@ -308,7 +305,7 @@ let d = new Dialog({
       ui.gridDragData.id = this.id
       let data = {
         type:"Item", 
-        uuid: `Actor.${character.id}.Item.${this.id}`,//.items.get(id).uuid,
+        uuid: this.dataset.uuid, //`Actor.${character.id}.Item.${this.id}`,//.items.get(id).uuid,
         offsetX: ui.gridDragData.offsetX,
         offsetY: ui.gridDragData.offsetY,
         x: ui.gridDragData.x,
@@ -324,7 +321,7 @@ let d = new Dialog({
     })
     .bind('dragend', function(e){
       ui.gridDragData = {}
-      $('div.item-drag-preview').remove()
+      //$('div.item-drag-preview').remove()
       $('div.item.clone').remove()
     })
     
@@ -359,6 +356,8 @@ let d = new Dialog({
     .bind('drop', async function(e){
       this.style.zIndex = 'unset'
       let preview = $('div.item-drag-preview')
+      let target = e.target.closest('div.item')
+      //console.log(preview, target)
       e.originalEvent.preventDefault();
       let data = JSON.parse(e.originalEvent.dataTransfer.getData("text"));
       if (!data) return;
@@ -373,11 +372,35 @@ let d = new Dialog({
       position.x = x
       position.y = y
       position.n = n
-
-      let test = $(`<div class="test" style="outline: 2px solid red; position: absolute; left: ${position.x*gridSize}px; top: ${position.y*gridSize}px; width: ${position.w*gridSize}px; height: ${position.h*gridSize}px;"></div>`)
-      $(this).append(test)
-      let overlapping = [...$(this).find('div.item')].filter((e)=>elementsOverlap(test[0], e) && !(e.id == item.id && !data.split))
-      $(this).find('div.test').remove()
+      let i
+      if (target) i = fromUuidSync(target.dataset.uuid)
+      if (i) { // if dropped on another item
+        render = false // don't render until handling the updates
+        
+        if (i.getFlag('griddy', 'position.c') && i.id != item.id) { // dropped on a container item
+          await item.setFlag('griddy', 'position.n', i.id)
+          render = true
+          return d.render(true)
+        }
+        
+        if (i.name == item.name && i.id != item.id) { // dropped on an item of the same name
+          let iQuantity = foundry.utils.getProperty(i, `system.${systemQuanityProp}`)
+          let itemQuantity =foundry.utils.getProperty(item, `system.${systemQuanityProp}`)
+          if (item.id==i.id) return $(e).find('span').text(itemQuantity)
+          await i.update({[`system.${systemQuanityProp}`]: iQuantity+data.quantity}, {render:false})
+          if (data.split)  await item.update({[`system.${systemQuanityProp}`]: itemQuantity-data.quantity}, {render:false})
+          else await item.delete()
+          render = true
+          return d.render(true)
+        }
+        render = true
+      }
+      
+      //let test = $(`<div class="test" style="outline: 2px solid red; position: absolute; left: ${position.x*gridSize}px; top: ${position.y*gridSize}px; width: ${position.w*gridSize}px; height: ${position.h*gridSize}px;"></div>`)
+      //$(this).append(test)
+      /*
+      let overlapping = [...$(this).find('div.item')].filter((e)=>elementsOverlap(preview[0], e) && !(e.id == item.id && !data.split))
+      //$(this).find('div.test').remove()
       //if (overlapping.map(e=>e.id).includes(item.id)) return await item.setFlag('griddy', 'position', position)
       let combined = false
       if (overlapping.length) {
@@ -403,9 +426,9 @@ let d = new Dialog({
         if (combined) return d.render(true)
         //return ui.notifications.warn("conflict")
       }
-      
-      if (preview.hasClass('conflicts')) 
-        position = testPosition(position, item)
+      */
+      if (preview.hasClass('conflicts'))  position = testPosition(position, item)
+      preview.remove()
       /*
       if (outOfBounds(position, rows, cols)) {
         $(this).find('div.test').remove()
@@ -418,11 +441,11 @@ let d = new Dialog({
         let newItem = item.toObject()
         foundry.utils.setProperty(newItem, `system.${systemQuanityProp}`, data.quantity)
         foundry.utils.setProperty(newItem, "flags.griddy.position", position)
-        await character.createEmbeddedDocuments("Item", [newItem])
+        let newItems = await character.createEmbeddedDocuments("Item", [newItem])
         render = true
         return d.render(true)
       }
-      if (!data.uuid.includes(character.id) || !data.uuid.startsWith('Actor')) {
+      if (!(data.uuid.includes(character.id) || data.uuid.includes("Token")) || !data.uuid.startsWith('Actor')) {
         let newItem = item.toObject()
         foundry.utils.setProperty(newItem, "flags.griddy.position", position)
         let docs = await character.createEmbeddedDocuments("Item", [newItem])
@@ -498,7 +521,8 @@ let d = new Dialog({
       let newPosition = testPosition(position, item)
       
       if (JSON.stringify(position) == JSON.stringify(newPosition)) continue;
-      return item.setFlag('griddy', 'position', newPosition)
+      item.setFlag('griddy', 'position', newPosition)
+      break
     }
   },
   close: (html)=>{
@@ -539,6 +563,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
     character.updateEmbeddedDocuments("Item", updates)
     
   })
+  
   header.after(autoSort)
   if (!(game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)) return
   let gridConfig = $(`<a class="griddy-config" data-tooltip="Grid Config"><i class="fa-solid fa-cog"></i></a>`)
@@ -579,6 +604,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
       },{top: e.clientY , left: e.clientX, width: 250, height: 'auto'}).render(true)
     
   });
+  if (container) return;
   html.find('a.auto-sort').after(gridConfig)
 
 });
@@ -588,16 +614,6 @@ d.render(true);
 
 }// end Actor.prototype.inventoryGrid 
 
-Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
-  
-  buttons.unshift({
-    "label": "Griddy",
-    "class": "griddy",
-    "icon": "ffa-solid fa-table-cells",
-    onclick: (e)=>{ app.actor.griddy() }
-  })
-  
-})
 
 Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
   let item = app.item
@@ -654,7 +670,13 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
             let position = [...html.find('input')].reduce((a, e)=>{
               return Object.assign(a, {[e.getAttribute('name')]: e.type=='number'?Number(e.value):e.checked})
             },{})
-            if (position.c) position.s = 0
+            if (position.c) position.s = 1
+            if (position.s != item.flags.griddy?.position?.s && item.parent) {
+              let items = item.parent.items.filter(i=>i.name==item.name && i.id != item.id)
+              let updates = items.map(i=>{return {_id:i.id, "flags.griddy.position.s":position.s}})
+              await item.parent.updateEmbeddedDocuments("Item", updates)
+            }
+            
             await item.setFlag('griddy', 'position', position)
             ui.notifications.info(`Updated ${item.name} Griddy flags: ${JSON.stringify(position)}`)
             //console.log(`${item.name} (${item.id}) flags updated`, position)
