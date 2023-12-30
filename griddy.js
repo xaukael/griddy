@@ -438,8 +438,13 @@ let d = new Dialog({
         //return ui.notifications.warn("conflict")
       }
       */
-      if (preview.hasClass('conflicts'))  position = testPosition(position, item)
+      if (preview.hasClass('conflicts')) {
+        position = testPosition(position, item)
+        $(`div#${item.id}`).css('opacity', 'unset')
+      }
       preview.remove()
+
+      
       /*
       if (outOfBounds(position, rows, cols)) {
         $(this).find('div.test').remove()
