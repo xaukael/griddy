@@ -23,6 +23,9 @@ Items dragged to items marked as containers will move the item into that contain
 ![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
 
 ## Updates
+1.0.15
+- fixed item opacity not being set back to 1 when there was a conflict in dragging
+  
 1.0.14
 - improved drag preview
 - items in containers moved between actors will now take their contents with them
