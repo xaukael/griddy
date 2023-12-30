@@ -268,6 +268,7 @@ let d = new Dialog({
     })
     
     ui.gridDragData = {} // offsetY, offsetX, x, y, h, w
+    ui.dragPreviewClone 
     html.find('div.item').bind("dragstart", function(e) {
       $(`div[id^="${id}-"]`).each(function(){
         ui.windows[this.dataset.appid].bringToTop()
@@ -289,9 +290,14 @@ let d = new Dialog({
             clone.find('span').text(Math.ceil(quantity/2))
             $(this).find('span').text(Math.floor(quantity/2))
           }
+          
         }
         $(this).parent().append(clone)
-      }
+      } 
+      ui.dragPreviewClone = $(this).clone()
+      ui.dragPreviewClone.addClass('item-drag-preview')
+      this.style.opacity = 0
+      
       
       const itemRect = this.getBoundingClientRect();
       const inventory = e.target.closest(`div.${id}`);
@@ -320,8 +326,13 @@ let d = new Dialog({
       //e.originalEvent.dataTransfer.setDragImage(document.createElement('img'), 0, 0);
     })
     .bind('dragend', function(e){
+      e.originalEvent.preventDefault();
+      const inventoryRect = this.parentElement.getBoundingClientRect();
+      let x = (Math.floor((e.clientX - inventoryRect.left)/gridSize)-(ui.gridDragData.offsetX||0))
+      let y = (Math.floor((e.clientY - inventoryRect.top)/gridSize)-(ui.gridDragData.offsetY|0))
+      if (x == ui.gridDragData.x && y == ui.gridDragData.y) this.style.opacity = 1
+      
       ui.gridDragData = {}
-      //$('div.item-drag-preview').remove()
       $('div.item.clone').remove()
     })
     
@@ -339,7 +350,7 @@ let d = new Dialog({
       
       let preview = $(this).find('div.item-drag-preview')
       if (!preview.length) {
-        preview = $(`<div class="item-drag-preview"></div>`)
+        preview = ui.dragPreviewClone.clone()//$(`<div class="item-drag-preview"></div>`)
         preview.css({left, top, width, height})
         $(this).append(preview)
       }else{
@@ -445,12 +456,26 @@ let d = new Dialog({
         render = true
         return d.render(true)
       }
+      // handle items dropped from another actor
       if (!(data.uuid.includes(character.id) || data.uuid.includes("Token")) || !data.uuid.startsWith('Actor')) {
         let newItem = item.toObject()
         foundry.utils.setProperty(newItem, "flags.griddy.position", position)
         let docs = await character.createEmbeddedDocuments("Item", [newItem])
-        if (item.parent?.permission > 2 && docs.length)
+        console.log(docs)
+        if (item.parent?.permission > 2 && docs.length) {// if the user has the ability to delete from source
+          
+          if (item.flags.griddy?.position?.c) {// move items in container
+            let itemsInContainer = item.parent.items.filter(i=>i.flags.griddy?.position?.n == item.id)
+            let newItems = itemsInContainer.map(i=>{
+              let newItem = i.toObject()
+              foundry.utils.setProperty(newItem, "flags.griddy.position.n", docs[0].id)
+              return newItem
+            })
+            await character.createEmbeddedDocuments("Item", newItems)
+            await item.parent.deleteEmbeddedDocuments("Item", itemsInContainer.map(i=>i.id))
+          }
           item.delete()
+        }
         return
       }
       return await item.setFlag('griddy', 'position', position)
