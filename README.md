@@ -17,3 +17,13 @@ What the module handles
 - dragging and dropping of items to and from the grid
 
 ![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
+
+## Updates
+1.0.14
+- improved drag preview
+- items in containers moved between actors will now take their contents with them
+
+1.0.13
+- fixed error in free space finder
+
+  
