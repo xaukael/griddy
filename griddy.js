@@ -1,6 +1,5 @@
 /**
  * Function to open a Griddy Dialog
- * @constructor
  * @param {object} options - settings for the grid
  */
 Actor.prototype.griddy = function(options={}) {
@@ -43,7 +42,7 @@ let dblClickItem = function(e){
   //item.use()
 }
 let rightClickItem = async function(e){
-  let item = character.items.get(this.id)
+  let item = fromUuidSync(this.dataset.uuid)//character.items.get(this.id)
   
   if (e.ctrlKey) {
     
@@ -85,7 +84,7 @@ let conflicts = function(position, itemId, items){
 let outOfBounds = function(p){ return (p.x+(p.w)>cols||p.y+(p.h)>rows||p.x<0||p.y<0) }
   
 let d = new Dialog({
-  title: container?character.items.get(container).name:character.name +" Equipment",
+  title: container?character.items.get(container).name:character.name,// +" Equipment",
   content: `
   <style>
   div.${id} { position: relative; overflow: hidden;}
@@ -157,8 +156,8 @@ let d = new Dialog({
 
     // ADD ITEMS TO THE GRID
     let itemElements = items.reduce((a,i)=>a+=//${conflicts(i.flags.griddy?.position, i.id, items).length?'conflicts':''}
-           `<div id="${i.id}" data-name="${i.name}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}" data-type="${i.type}"
-           data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.createdTime}"
+           `<div id="Item-${i.id}" data-name="${i.name}" data-id="${i.id}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}" data-type="${i.type}"
+           data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.modifiedTime}"
            data-tooltip="${i.name}${foundry.utils.getProperty(i.system, systemQuanityProp)>1?` (${foundry.utils.getProperty(i.system, systemQuanityProp)})`:''}" 
            style=" left: ${i.flags.griddy?.position?.x*gridSize}px; top: ${i.flags.griddy?.position?.y*gridSize}px; width:${i.flags.griddy?.position?.w*gridSize}px; height:${i.flags.griddy?.position?.h*gridSize}px; cursor:pointer">
            <img src="${i.img}" style="transform: translate(-50%, -50%); " >
@@ -203,7 +202,7 @@ let d = new Dialog({
     // ITEM DIV EVENTS
     html.find('div.item')
     .dblclick(function(e){
-      let item = character.items.get(this.id)
+      let item = fromUuidSync(this.dataset.uuid)//character.items.get(this.id)
       if (item.flags.griddy.position.c) {
         let p = item.flags.griddy.position
         return character.griddy({
@@ -218,7 +217,7 @@ let d = new Dialog({
     })
     .contextmenu(rightClickItem)
     .bind("wheel", async function(e) {
-      let item = character.items.get(this.id);
+      let item = fromUuidSync(this.dataset.uuid)//character.items.get(this.id);
       let position = foundry.utils.deepClone(item.flags.griddy.position)
 
       if (e.ctrlKey && resizing) 
@@ -247,8 +246,9 @@ let d = new Dialog({
       let x = Math.round((rotatedRect.left-inventoryRect.left)/gridSize)
       let y = Math.round((rotatedRect.top-inventoryRect.top)/gridSize)
       position = {x,y,w:position.h,h:position.w}
-      if ([...html.find('div.item')].filter((e)=>elementsOverlap(this, e) && e.id != item.id).length||//conflicts(position, item.id, items).length
-          position.x+(position.w)>cols||
+      
+      //if ([...html.find('div.item')].filter((e)=>elementsOverlap(this, e) && !e.id.includes(item.id)).length||//conflicts(position, item.id, items).length
+      if (position.x+(position.w)>cols||
           position.y+(position.h)>rows||
           position.x<0 ||position.y<0) {
         this.style.transform = `unset`
@@ -257,8 +257,9 @@ let d = new Dialog({
         if (position.x+(position.w)>cols||position.y+(position.h)>rows
           ||position.x<0||position.y<0)
           return ui.notifications.warn("cannot rotate: out of bounds")
-        return ui.notifications.warn("cannot rotate: conflict")
+        //return ui.notifications.warn("cannot rotate: conflict")
       }
+      
       await item.setFlag('griddy', 'position', position)
       $(this).css({
         left: position.x*gridSize+'px', 
@@ -268,17 +269,17 @@ let d = new Dialog({
     })
     
     ui.gridDragData = {} // offsetY, offsetX, x, y, h, w
-    ui.dragPreviewClone 
+    //ui.dragPreviewClone 
     html.find('div.item').bind("dragstart", function(e) {
       $(`div[id^="${id}-"]`).each(function(){
         ui.windows[this.dataset.appid].bringToTop()
       })
       this.style.zIndex = 1
-      
-      if ((e.shiftKey||e.ctrlKey)) {
-        let quantity = Number($(this).find('span').text())
+      let quantity = Number($(this).find('span').text())
+      let split = false
+      if ((e.shiftKey||e.ctrlKey) && quantity>1) {
+        split = true
         let clone = $(this).clone()
-        
         clone.css({'z-index': '1', 'pointer-events': 'none'})
         clone.addClass('clone')
         if (quantity>1) {
@@ -294,6 +295,8 @@ let d = new Dialog({
         }
         $(this).parent().append(clone)
       } 
+      //ui.draggedItem = this
+      //ui.draggedItem.style.pointerEvents = 'none'
       ui.dragPreviewClone = $(this).clone()
       ui.dragPreviewClone.addClass('item-drag-preview')
       this.style.opacity = 0
@@ -317,23 +320,50 @@ let d = new Dialog({
         x: ui.gridDragData.x,
         y: ui.gridDragData.y,
         quantity: Number($(this).find('span').text()),
-        split: (e.shiftKey||e.ctrlKey)
+        split
       }
       let text = JSON.stringify(data)
       e.originalEvent.dataTransfer.setData("text", text);
       e.originalEvent.dataTransfer.effectAllowed = "move";
       //$(this).css({opacity: 0})
-      //e.originalEvent.dataTransfer.setDragImage(document.createElement('img'), 0, 0);
+      var dragIcon = document.createElement("img");
+      dragIcon.src = this.querySelector('img').src
+      dragIcon.style.borderRadius="unset";
+      var div = document.createElement('div');
+      div.appendChild(dragIcon);
+      div.classList.add("drag-img");
+      div.style.position = "absolute"; 
+      div.style.top = "-500px"; 
+      div.style.left= "-500px";
+      div.style.height = "20px";
+      div.style.width = "20px";
+      document.querySelector('body').appendChild(div);
+      e.originalEvent.dataTransfer.setDragImage(div, 10, 10);
     })
     .bind('dragend', function(e){
+      
       e.originalEvent.preventDefault();
+      //console.log(ui.windows[this.closest('.app').dataset.appid].object)
+      document.querySelectorAll('div.drag-img').forEach(e=>e.remove())
+      
+      $('div.item.clone').remove()
+      let preview = $('div.item-drag-preview')
+      //console.log(preview)
+      if (preview.length && !preview.closest('.app')[0].id.includes(this.dataset.id)) preview.replaceWith(this)
+      else this.style.opacity = 1
+      ui.gridDragData = {}
+      
+      //
       const inventoryRect = this.parentElement.getBoundingClientRect();
       let x = (Math.floor((e.clientX - inventoryRect.left)/gridSize)-(ui.gridDragData.offsetX||0))
       let y = (Math.floor((e.clientY - inventoryRect.top)/gridSize)-(ui.gridDragData.offsetY|0))
       if (x == ui.gridDragData.x && y == ui.gridDragData.y) this.style.opacity = 1
+      return preview.remove()
+      //console.log(this)
       
-      ui.gridDragData = {}
-      $('div.item.clone').remove()
+      if (x == ui.gridDragData.x && y == ui.gridDragData.y) this.style.opacity = 1
+
+      let item = fromUuidSync(this.dataset.uuid)
     })
     
     // INVENTORY DIV EVENTS
@@ -356,19 +386,28 @@ let d = new Dialog({
       }else{
         preview.css({left, top, width, height})
       }
+      /*
+      ui.draggedItem.style.left = left
+      ui.draggedItem.style.top = top
+      if (!this.querySelector(`#${ui.draggedItem.id}`))
+        $(this).append(ui.draggedItem)
+      */
       let position = {x ,y ,w: ui.gridDragData.w||1,h: ui.gridDragData.h||0 }
       let oob = outOfBounds(position)
-      if (oob) preview.addClass('conflicts')
+      if (oob)preview.addClass('conflicts')
       else preview.removeClass('conflicts')
-      if ([...$(this).find('div.item')].find(e=>elementsOverlap(e, preview[0]) && e.id!=ui.gridDragData.id)) preview.addClass('conflicts')
-    }).bind("dragleave", function(){
-      $(this).find('div.item-drag-preview').remove()
+      //console.log(ui.draggedItem.classList)
+      if ([...$(this).find('div.item')].find(e=>elementsOverlap(e, preview[0])  && e.id!=ui.gridDragData.id) ) 
+        preview.addClass('conflicts')
+    }).bind("dragleave", function(e){
+      e.originalEvent.preventDefault();
+      return $(this).find('div.item-drag-preview').remove()
     })
     .bind('drop', async function(e){
-      this.style.zIndex = 'unset'
-      let preview = $('div.item-drag-preview')
+      this.style.zIndex = 'unset';
+      //let preview = $('div.item-drag-preview')
       let target = e.target.closest('div.item')
-      //console.log(preview, target)
+      //console.log(target)
       e.originalEvent.preventDefault();
       let data = JSON.parse(e.originalEvent.dataTransfer.getData("text"));
       if (!data) return;
@@ -379,22 +418,25 @@ let d = new Dialog({
       let y = Math.floor((e.clientY - inventoryRect.top)/gridSize)-(data.offsetY|0)
       
       let item = await fromUuid(data.uuid)
+      
+      if (item.id == container) return
       let position = foundry.utils.deepClone(item.flags.griddy?.position) || {x:0,y:0,w:1,h:1,e:false}
       position.x = x
       position.y = y
       position.n = n
+      
       let i
       if (target) i = fromUuidSync(target.dataset.uuid)
       if (i) { // if dropped on another item
-        render = false // don't render until handling the updates
-        
+        render = false
         if (i.getFlag('griddy', 'position.c') && i.id != item.id) { // dropped on a container item
           await item.setFlag('griddy', 'position.n', i.id)
+          ui.notifications.notify(`${item.name} added to ${i.name}`)
           render = true
-          return d.render(true)
+          if (i.parent?.id == item.parent?.id) return d.render(true)//Object.values(character.apps).forEach(a=>a.render(true))//
         }
-        
         if (i.name == item.name && i.id != item.id) { // dropped on an item of the same name
+           // don't render until handling the updates
           let iQuantity = foundry.utils.getProperty(i, `system.${systemQuanityProp}`)
           let itemQuantity =foundry.utils.getProperty(item, `system.${systemQuanityProp}`)
           if (item.id==i.id) return $(e).find('span').text(itemQuantity)
@@ -406,51 +448,6 @@ let d = new Dialog({
         }
         render = true
       }
-      
-      //let test = $(`<div class="test" style="outline: 2px solid red; position: absolute; left: ${position.x*gridSize}px; top: ${position.y*gridSize}px; width: ${position.w*gridSize}px; height: ${position.h*gridSize}px;"></div>`)
-      //$(this).append(test)
-      /*
-      let overlapping = [...$(this).find('div.item')].filter((e)=>elementsOverlap(preview[0], e) && !(e.id == item.id && !data.split))
-      //$(this).find('div.test').remove()
-      //if (overlapping.map(e=>e.id).includes(item.id)) return await item.setFlag('griddy', 'position', position)
-      let combined = false
-      if (overlapping.length) {
-        render = false
-        for (let e of overlapping) {
-          let i = character.items.get(e.id)
-          if (i.getFlag('griddy', 'position.c')) {
-            await item.setFlag('griddy', 'position.n', i.id)
-            render = true
-            return d.render(true)
-          }
-          if (i.name != item.name) continue;
-          combined = true
-          let iQuantity = foundry.utils.getProperty(i, `system.${systemQuanityProp}`)
-          let itemQuantity =foundry.utils.getProperty(item, `system.${systemQuanityProp}`)
-          if (item.id==i.id) return $(e).find('span').text(itemQuantity)
-          await i.update({[`system.${systemQuanityProp}`]: iQuantity+data.quantity}, {render:false})
-          if (data.split)  await item.update({[`system.${systemQuanityProp}`]: itemQuantity-data.quantity}, {render:false})
-          else await item.delete()
-          
-        }
-        render = true
-        if (combined) return d.render(true)
-        //return ui.notifications.warn("conflict")
-      }
-      */
-      if (preview.hasClass('conflicts')) {
-        position = testPosition(position, item)
-        $(`div#${item.id}`).css('opacity', 'unset')
-      }
-      preview.remove()
-
-      
-      /*
-      if (outOfBounds(position, rows, cols)) {
-        $(this).find('div.test').remove()
-        return ui.notifications.warn("out of bounds")
-      }
-      */
       if (data.split) {
         render = false
         await item.update({[`system.${systemQuanityProp}`]:  foundry.utils.getProperty(item, `system.${systemQuanityProp}`)-data.quantity}, {render:false})
@@ -464,12 +461,15 @@ let d = new Dialog({
       // handle items dropped from another actor
       if (!(data.uuid.includes(character.id) || data.uuid.includes("Token")) || !data.uuid.startsWith('Actor')) {
         let newItem = item.toObject()
+        if (i && i.getFlag('griddy', 'position.c'))  position.n = i.id
+        console.log(newItem)
         foundry.utils.setProperty(newItem, "flags.griddy.position", position)
         let docs = await character.createEmbeddedDocuments("Item", [newItem])
-        console.log(docs)
+        //console.log(docs)
         if (item.parent?.permission > 2 && docs.length) {// if the user has the ability to delete from source
-          
+          Object.values(ui.windows).filter(w=>w.id.includes(item.id)).forEach(w=>w.close())
           if (item.flags.griddy?.position?.c) {// move items in container
+            
             let itemsInContainer = item.parent.items.filter(i=>i.flags.griddy?.position?.n == item.id)
             let newItems = itemsInContainer.map(i=>{
               let newItem = i.toObject()
@@ -483,7 +483,10 @@ let d = new Dialog({
         }
         return
       }
-      return await item.setFlag('griddy', 'position', position)
+      //Object.values(character.apps).forEach(a=>a.render(true))
+      await item.setFlag('griddy', 'position', position)
+      
+      return $(`div#Item-${item.id}`).css('opacity', '1')
     })
     
     // QUANTITY SPAN EVENTS
@@ -499,7 +502,7 @@ let d = new Dialog({
       selection.removeAllRanges();
       selection.addRange(range);
     }).focusout(async function(){
-      let item = character.items.get(this.parentElement.id)
+      let item = fromUuidSync(this.parentElement.dataset.uuid)//character.items.get(this.parentElement.id)
       let input = $(this).text();
       if (input == "") input = '0'
       item.update({[`system.${systemQuanityProp}`]:Number(input)})
@@ -520,10 +523,10 @@ let d = new Dialog({
     // STACK LIMIT HANDLING
     let tooBigStack = [...html.find('div.item')]
       .find(e=>e.dataset.stackLimit != "0" && Number(e.dataset.stackLimit)<Number($(e).find('span.item-quantity').text()))
-    
+    //console.log(tooBigStack)
     if (tooBigStack) {
       let stackLimit = Number(tooBigStack.dataset.stackLimit)
-      let item = character.items.get(tooBigStack.id)
+      let item = fromUuidSync(tooBigStack.dataset.uuid)//character.items.get(tooBigStack.id)
       let quantity = foundry.utils.getProperty(item, `system.${systemQuanityProp}`)
       render = false
       await item.update({[`system.${systemQuanityProp}`]:stackLimit})
@@ -539,14 +542,14 @@ let d = new Dialog({
     // CONFLICT DETECTION AND RESOLUTION
     
     let conflictingElements = [...html.find('div.item')]
-      .sort((a,b)=> (Number(b.dataset.lastModified)||0) - (Number(a.dataset.lastModified)||0))
+      .sort((a,b)=> (Number(a.dataset.lastModified)||0) - (Number(b.dataset.lastModified)||0))
       //.sort((a,b)=> Number(a.dataset.size - Number(b.dataset.size)))
       .filter((e,i,a)=> a.filter(x=>e.id!=x.id&&elementsOverlap(e,x)).length?e:false).map(e=>{
       $(e).addClass('conflicts')
       return e
     })
     for (let e of conflictingElements) {
-      let item = character.items.get(e.id)
+      let item = fromUuidSync(e.dataset.uuid)//character.items.get(e.id)
       let position = item.getFlag('griddy', 'position')
       let newPosition = testPosition(position, item)
       
@@ -568,7 +571,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
   let autoSort = $(`<a class="auto-sort" data-tooltip="Compress"><i class="fa-solid fa-left-right"></i></a>`)
   autoSort.click( function(e){
     app.element.find(`div.${id} > div.item`).each(function(){
-      let p = character.items.get(this.id).getFlag('griddy', 'position')
+      let p = fromUuidSync(this.dataset.uuid).getFlag('griddy', 'position')//character.items.get(this.id).getFlag('griddy', 'position')
       $(this).css({
         left: 'unset',
         top: 'unset',
@@ -588,7 +591,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
       let itemRect = e.getBoundingClientRect()
       let x = Math.floor((itemRect.x - gridRect.x)/gridSize)
       let y = Math.floor((itemRect.y - gridRect.y)/gridSize)
-      return {_id: e.id, flags: { griddy: { position: {x,y}}}}
+      return {_id: e.dataset.id, flags: { griddy: { position: {x,y}}}}
     })
     character.updateEmbeddedDocuments("Item", updates)
     
@@ -634,7 +637,7 @@ Hooks.once('renderDialog', (app, html, options)=>{
       },{top: e.clientY , left: e.clientX, width: 250, height: 'auto'}).render(true)
     
   });
-  if (container) return;
+  if (container) return d.render(true);
   html.find('a.auto-sort').after(gridConfig)
 
 });
@@ -847,5 +850,3 @@ Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
     }
   })
 })
-
-//actor.griddy({gridSize: 50, rows:6, cols: 10, locked: true})
