@@ -23,6 +23,10 @@ Items dragged to items marked as containers will move the item into that contain
 ![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
 
 ## Updates
+1.0.17
+- items dragged on top of containers will show white outline instead of the usual red that indicates conflict
+- items dragged on top of items of the same name will have a green outline to indicate that they will combine
+
 1.0.16
 - containers can no longer be dropped inside their own grid
 - simplified drop handline to drop target rather than handling on overlap
