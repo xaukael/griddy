@@ -43,11 +43,6 @@ let dblClickItem = function(e){
 }
 let rightClickItem = async function(e){
   let item = fromUuidSync(this.dataset.uuid)//character.items.get(this.id)
-  
-  if (e.ctrlKey) {
-    
-  }
-
   item.sheet.render(true)
 }
 
@@ -62,25 +57,7 @@ function elementsOverlap(el1, el2) {
     domRect1.left >= domRect2.right
   );
 }
-  
-let conflicts = function(position, itemId, items){
-  let positions = []
-  for (let x=0; x<position.w; x++)
-    for (let y=0; y<position.h; y++)
-      positions.push({...position, ...{x: position.x+x, y: position.y+y}})
-  let otherItems = items.filter(i=>i.flags.griddy?.position && i.id!=itemId && !i.flags.griddy?.position.e)
-  let filledSlots = otherItems.map(i=>{ return {...i.flags.griddy?.position, id: i.id}})
-  let sizeFilled = [];
-  for (let slot of filledSlots.filter(c=>c.h>1 || c.w>1))
-    for (let x=0; x<slot.w; x++)
-      for (let y=0; y<slot.h; y++)
-        sizeFilled.push({...slot, ...{x: slot.x+x, y: slot.y+y}})
-  filledSlots = filledSlots.concat(sizeFilled)
-  let conflicts = []
-  for (let p of positions)
-    conflicts = conflicts.concat(filledSlots.filter(f=>f.x==p.x && f.y==p.y))
-  return conflicts
-}
+
 let outOfBounds = function(p){ return (p.x+(p.w)>cols||p.y+(p.h)>rows||p.x<0||p.y<0) }
   
 let d = new Dialog({
@@ -91,6 +68,8 @@ let d = new Dialog({
   div.${id} > div.item {padding: 2px; cursor: pointer; position: absolute; background:${itemBackground};}
   div.${id} > div.item {outline: 1px solid ${itemOutlineColor}; outline-offset: -2px; transition: outline .25s;}
   div.${id} > div.conflicts {outline: 2px dotted red !important; opacity: 0.5;}
+  div.${id} > div.drop-in {outline: 2px dashed white !important; opacity: 0.5;}
+  div.${id} > div.combine {outline: 2px dashed green !important; opacity: 0.5;}
   div.${id} > div.item:hover {outline: 1px solid var(--color-shadow-highlight) !important;}
   div.${id} {
     border: 1px solid ${gridColor};
@@ -157,7 +136,7 @@ let d = new Dialog({
     // ADD ITEMS TO THE GRID
     let itemElements = items.reduce((a,i)=>a+=//${conflicts(i.flags.griddy?.position, i.id, items).length?'conflicts':''}
            `<div id="Item-${i.id}" data-name="${i.name}" data-id="${i.id}" class="item" draggable="true" data-uuid="${i.uuid}" data-stack-limit="${i.flags.griddy?.position?.s||0}" data-type="${i.type}"
-           data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.modifiedTime}"
+           data-size="${i.flags.griddy?.position?.w*i.flags.griddy?.position?.h}" data-last-modified="${i._stats.modifiedTime}" data-container="${i.flags.griddy?.position?.c}"
            data-tooltip="${i.name}${foundry.utils.getProperty(i.system, systemQuanityProp)>1?` (${foundry.utils.getProperty(i.system, systemQuanityProp)})`:''}" 
            style=" left: ${i.flags.griddy?.position?.x*gridSize}px; top: ${i.flags.griddy?.position?.y*gridSize}px; width:${i.flags.griddy?.position?.w*gridSize}px; height:${i.flags.griddy?.position?.h*gridSize}px; cursor:pointer">
            <img src="${i.img}" style="transform: translate(-50%, -50%); " >
@@ -312,8 +291,10 @@ let d = new Dialog({
       ui.gridDragData.h = parseInt(this.style.height)/gridSize
       ui.gridDragData.w = parseInt(this.style.width)/gridSize
       ui.gridDragData.id = this.id
+      ui.gridDragData.name = this.dataset.name
       let data = {
         type:"Item", 
+        name: this.dataset.name,
         uuid: this.dataset.uuid, //`Actor.${character.id}.Item.${this.id}`,//.items.get(id).uuid,
         offsetX: ui.gridDragData.offsetX,
         offsetY: ui.gridDragData.offsetY,
@@ -394,11 +375,16 @@ let d = new Dialog({
       */
       let position = {x ,y ,w: ui.gridDragData.w||1,h: ui.gridDragData.h||0 }
       let oob = outOfBounds(position)
-      if (oob)preview.addClass('conflicts')
+      if (oob) preview.addClass('conflicts')
       else preview.removeClass('conflicts')
       //console.log(ui.draggedItem.classList)
       if ([...$(this).find('div.item')].find(e=>elementsOverlap(e, preview[0])  && e.id!=ui.gridDragData.id) ) 
         preview.addClass('conflicts')
+      if (e.target.dataset.container=="true") preview.addClass('drop-in')
+      else preview.removeClass('drop-in')
+      if (e.target.dataset.name==ui.gridDragData.name) preview.addClass('combine')
+      else preview.removeClass('combine')
+      //console.log(e.target.dataset.name,ui.gridDragData.name, e.target.dataset.container)
     }).bind("dragleave", function(e){
       e.originalEvent.preventDefault();
       return $(this).find('div.item-drag-preview').remove()
@@ -462,7 +448,7 @@ let d = new Dialog({
       if (!(data.uuid.includes(character.id) || data.uuid.includes("Token")) || !data.uuid.startsWith('Actor')) {
         let newItem = item.toObject()
         if (i && i.getFlag('griddy', 'position.c'))  position.n = i.id
-        console.log(newItem)
+        //console.log(newItem)
         foundry.utils.setProperty(newItem, "flags.griddy.position", position)
         let docs = await character.createEmbeddedDocuments("Item", [newItem])
         //console.log(docs)
