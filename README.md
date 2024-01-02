@@ -21,7 +21,7 @@ Item splitting is handled by pressing Ctrl or Shift for splitting 1 or half resp
 Items dragged to items marked as containers will move the item into that container.
 
 
-You can also change the dimensions of items within the grid by holding shift or control while using the mouse wheel to resize horizontally or vertically respectively.
+You can change the dimensions of items within the grid by holding shift or control while using the mouse wheel to resize horizontally or vertically respectively.
 
 The item configuration dialog, accessed through the header button added to the item sheet allows you to change:
 - item dimensions
