@@ -824,6 +824,30 @@ Hooks.once("init", ()=>{
 Hooks.on('ready', ()=>{
   if (game.user.isGM && game.settings.get('griddy', `itemTypes`) == "" && game.system.id == 'dnd5e')
     game.settings.set('griddy', `itemTypes`,"equipment,weapon,loot,consumable,backpack,tool")
+
+  if (game.settings.get('griddy', `itemTypes`) == "" && game.user.isGM) {
+    let itemTypes = game.settings.get('griddy', 'itemTypes')
+    new Dialog({
+      title: 'Griddy Item Types',
+      content: ``,
+      buttons:{
+        submit: {
+          label: 'submit',
+          callback: (html) => {
+            let itemTypes = [...html.find('input:checked')].map(e=> e.getAttribute('name')).join(',')
+            console.log(itemTypes)
+            game.settings.set('griddy', 'itemTypes', itemTypes)
+          }
+        }
+      },
+      render: (html)=>{
+        let table = `<style>div.types-form span {line-height: var(--form-field-height);}</style><p>What items types should be included in Griddy?</p>
+              <div class="types-form" style="display:grid; grid-template-columns: 1.5em auto ; column-gap: 1em; row-gap: .2em; margin-bottom: .5em">${ Object.keys(game.system.model.Item).reduce((a,x)=>a+=`
+              <input name="${x}" type="checkbox" ${itemTypes.includes(x)?'checked':''}></input><span>${x}</span>`,``)}</div>`
+              html[0].innerHTML = table
+      }
+    },{width:250}).render(true)
+  }
 })
 
 Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
