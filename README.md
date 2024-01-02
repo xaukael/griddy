@@ -33,6 +33,9 @@ The item configuration dialog, accessed through the header button added to the i
 ![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
 
 ## Updates
+1.0.18
+- added item type selection dialog on load if none are defined
+  
 1.0.17
 - items dragged on top of containers will show white outline instead of the usual red that indicates conflict
 - items dragged on top of items of the same name will have a green outline to indicate that they will combine
