@@ -358,9 +358,9 @@ let d = new Dialog({
       let top = y*gridSize + 'px'
       let width = (ui.gridDragData.w||1)*gridSize + 'px'
       let height = (ui.gridDragData.h||1)*gridSize + 'px'
-      
+      if (!ui.dragPreviewClone) ui.dragPreviewClone = $(`<div class="item-drag-preview"></div>`)
       let preview = $(this).find('div.item-drag-preview')
-      if (!preview.length) {
+      if (!preview.length && ui.dragPreviewClone) {
         preview = ui.dragPreviewClone.clone()//$(`<div class="item-drag-preview"></div>`)
         preview.css({left, top, width, height})
         $(this).append(preview)
@@ -382,7 +382,7 @@ let d = new Dialog({
         preview.addClass('conflicts')
       if (e.target.dataset.container=="true") preview.addClass('drop-in')
       else preview.removeClass('drop-in')
-      if (e.target.dataset.name==ui.gridDragData.name) preview.addClass('combine')
+      if (e.target.dataset.name==ui.gridDragData.name && !e.target.id.includes(ui.gridDragData.id)) preview.addClass('combine')
       else preview.removeClass('combine')
       //console.log(e.target.dataset.name,ui.gridDragData.name, e.target.dataset.container)
     }).bind("dragleave", function(e){
@@ -689,7 +689,11 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
             let position = [...html.find('input')].reduce((a, e)=>{
               return Object.assign(a, {[e.getAttribute('name')]: e.type=='number'?Number(e.value):e.checked})
             },{})
-            if (position.c) position.s = 1
+            if (position.c) {
+              position.s = 1
+              if (!position.rows) position.rows = 1
+              if (!position.cols) position.cols = 1
+            }
             if (position.s != item.flags.griddy?.position?.s && item.parent) {
               let items = item.parent.items.filter(i=>i.name==item.name && i.id != item.id)
               let updates = items.map(i=>{return {_id:i.id, "flags.griddy.position.s":position.s}})
@@ -719,7 +723,7 @@ Hooks.once("init", ()=>{
   
   game.settings.register('griddy', `itemTypes`, {
     name: `Item Types `,
-    hint: `Comma separated. If you do not know your system item types. Use this in the dev console (F12): <code>Object.keys(game.system.model.Item)</code>`,
+    hint: `Comma separated list of your system's item types to include on the grid. Double click for selection dialog`,
     scope: "world",
     type: String,
     default: "",
@@ -729,7 +733,7 @@ Hooks.once("init", ()=>{
   
   game.settings.register('griddy', `systemQuanityProp`, {
     name: `System Quantity Property `,
-    hint: ``,
+    hint: `Where in the system data quantity is stored. Double Click for sheet, Ctrl+Click the quantity input field to set.`,
     scope: "world",
     type: String,
     default: "quantity",
@@ -739,7 +743,7 @@ Hooks.once("init", ()=>{
 
   game.settings.register('griddy', 'showOneQuantity', {
     name: `Show Quantity of 1`,
-    hint: `Show quanitity of item even when it is 1`,
+    hint: `Show quantity of item even when it is 1`,
     scope: "client",
     type: Boolean,
     default: false,
@@ -850,6 +854,55 @@ Hooks.on('ready', ()=>{
   }
 })
 
+Hooks.on('renderSettingsConfig', (app, html)=>{
+ //let faLink = $(`<a href="https://fontawesome.com/search?o=r&m=free" target="_blank">Find Icons</a>`);
+  
+    let itemTypesButton = $(`<button>Select</button>`).click(async function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    let input = this.previousElementSibling
+    let itemTypes = input.value//game.settings.get('griddy', 'itemTypes')
+    itemTypes = await Dialog.prompt({
+      title: 'Griddy Item Types',
+      content: ``,
+      callback: (html) => {
+        let itemTypes = [...html.find('input:checked')].map(e=> e.getAttribute('name')).join(',')
+        return itemTypes
+      },
+      render: (html)=>{
+        let table = `<style>div.types-form span {line-height: var(--form-field-height);}</style><p>What items types should be included in Griddy?</p>
+              <div class="types-form" style="display:grid; grid-template-columns: 1.5em auto ; column-gap: 1em; row-gap: .2em; margin-bottom: .5em">
+              ${ Object.keys(game.system.model.Item).reduce((a,x)=>a+=`
+              <input name="${x}" type="checkbox" ${itemTypes.includes(x)?'checked':''}></input><span>${x}</span>`,``)}</div>`
+              html[0].innerHTML = table
+      }
+    },{width:250})
+    input.value = itemTypes
+  })
+  html.find('input[name="griddy.itemTypes"]').after(itemTypesButton)
+  let systemQuanityPropButton = $(`<button>Select</button>`).click(async function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    let input = this.previousElementSibling
+    let itemTypes = game.settings.get('griddy', 'itemTypes')
+    let type = itemTypes.split(',')[0]
+    let item = new Item.implementation({name: 'Ctrl+Click Quantity Property Input', type})
+    Hooks.once('renderItemSheet', (app, html)=>{
+      html.find('input').click(function(e){
+        if (!e.ctrlKey) return;
+        let prop = this.getAttribute('name').replace('system.','')
+        input.value = prop
+        game.settings.set('griddy', 'systemQuanityProp', prop)
+        app.close()
+      })
+      Dialog.prompt({content:"<center>Ctrl+Click the quantity input field</center>"})
+    })
+    item.sheet.render(true)
+    
+  })
+  html.find('input[name="griddy.systemQuanityProp"]').after(systemQuanityPropButton)
+});
+
 Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
   buttons.unshift({
     "label": "Griddy",
@@ -859,4 +912,14 @@ Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
       app.actor.griddy()
     }
   })
+})
+
+
+Hooks.on('deleteItem', (item, context, userId)=>{
+  if (game.user.id!=userId) return
+  if (!item.parent) return
+  if (!item.flags.griddy?.position?.c) return
+  let itemsInContainer = item.parent.items.filter(i=>i.flags.griddy?.position?.n == item.id)
+  let updates = itemsInContainer.map(i=>{ return {_id:i.id, "flags.griddy.position.n": null} })
+  item.parent.updateEmbeddedDocuments("Item", updates)
 })
