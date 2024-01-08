@@ -33,6 +33,12 @@ The item configuration dialog, accessed through the header button added to the i
 ![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
 
 ## Updates
+1.0.19
+- new settings helpers for item types and quantity property selection
+- when containers are deleted, items flagged as in that container will be moved out of the container
+- fixed a bug that was causing errors when dragging items from items directory or compendiums
+- items marked as containers will default their columns and rows to 1 instead of not setting those values at all
+
 1.0.18
 - added item type selection dialog on load if none are defined
   
