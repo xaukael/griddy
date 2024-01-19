@@ -33,6 +33,10 @@ The item configuration dialog, accessed through the header button added to the i
 ![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
 
 ## Updates
+1.0.20
+- fixed items in directory being deleted if dragged onto the same item in a grid
+- improved handling of quantities that may not be stored as numbers
+
 1.0.19
 - new settings helpers for item types and quantity property selection
 - when containers are deleted, items flagged as in that container will be moved out of the container
