@@ -101,12 +101,18 @@ let d = new Dialog({
     //console.log(html[0])
     $(html[0]).parent().css({background:background, color: 'white'})
     //html[0].innerHTML += 
-
+    
     // FILTER ITEMS
     let items = character.items.filter(i=>itemTypes.includes(i.type)&&i.flags.griddy?.position?.e!=true)
     if (container) items = items.filter(i=>i.flags.griddy.position.n && i.flags.griddy.position.n==container)
     else items = items.filter(i=>!i.flags.griddy?.position.n)
+
+    // making items a set temporarily so that set can be modified in the called hooks
+    items = new Set(items);
+    Hooks.call('filterGriddyItems', items)
+    items = Array.from(items);
     
+    //return console.log(items)
     // INITATE FLAGS FOR ITEMS
     let updates = items.filter(i => itemTypes.includes(i.type) && !foundry.utils.hasProperty(i, "flags.griddy.position")).map((i, index)=> { return {_id: i.id, flags: { griddy: { position: {
               x: index%cols,
@@ -414,6 +420,7 @@ let d = new Dialog({
       let i
       if (target) i = fromUuidSync(target.dataset.uuid)
       if (i) { // if dropped on another item
+        
         render = false
         if (i.getFlag('griddy', 'position.c') && i.id != item.id) { // dropped on a container item
           await item.setFlag('griddy', 'position.n', i.id)
@@ -423,12 +430,15 @@ let d = new Dialog({
         }
         if (i.name == item.name && i.id != item.id) { // dropped on an item of the same name
            // don't render until handling the updates
-          let iQuantity = foundry.utils.getProperty(i, `system.${systemQuanityProp}`)
-          let itemQuantity =foundry.utils.getProperty(item, `system.${systemQuanityProp}`)
+          let iQuantity = Number(foundry.utils.getProperty(i, `system.${systemQuanityProp}`))
+          let itemQuantity = Number(foundry.utils.getProperty(item, `system.${systemQuanityProp}`))
+          
           if (item.id==i.id) return $(e).find('span').text(itemQuantity)
+          if (!data.split) data.quantity = itemQuantity
           await i.update({[`system.${systemQuanityProp}`]: iQuantity+data.quantity}, {render:false})
           if (data.split)  await item.update({[`system.${systemQuanityProp}`]: itemQuantity-data.quantity}, {render:false})
-          else await item.delete()
+          else if (!item.uuid.startsWith('Item')) await item.delete()
+          
           render = true
           return d.render(true)
         }
@@ -436,9 +446,9 @@ let d = new Dialog({
       }
       if (data.split) {
         render = false
-        await item.update({[`system.${systemQuanityProp}`]:  foundry.utils.getProperty(item, `system.${systemQuanityProp}`)-data.quantity}, {render:false})
+        await item.update({[`system.${systemQuanityProp}`]:  Number(foundry.utils.getProperty(item, `system.${systemQuanityProp}`))-Number(data.quantity)}, {render:false})
         let newItem = item.toObject()
-        foundry.utils.setProperty(newItem, `system.${systemQuanityProp}`, data.quantity)
+        foundry.utils.setProperty(newItem, `system.${systemQuanityProp}`, Number(data.quantity))
         foundry.utils.setProperty(newItem, "flags.griddy.position", position)
         let newItems = await character.createEmbeddedDocuments("Item", [newItem])
         render = true
@@ -446,6 +456,7 @@ let d = new Dialog({
       }
       // handle items dropped from another actor
       if (!(data.uuid.includes(character.id) || data.uuid.includes("Token")) || !data.uuid.startsWith('Actor')) {
+        //console.log(data.uuid.includes(character.id) , data.uuid.includes("Token"), !data.uuid.startsWith('Actor'))
         let newItem = item.toObject()
         if (i && i.getFlag('griddy', 'position.c'))  position.n = i.id
         //console.log(newItem)
@@ -839,7 +850,7 @@ Hooks.on('ready', ()=>{
           label: 'submit',
           callback: (html) => {
             let itemTypes = [...html.find('input:checked')].map(e=> e.getAttribute('name')).join(',')
-            console.log(itemTypes)
+            //console.log(itemTypes)
             game.settings.set('griddy', 'itemTypes', itemTypes)
           }
         }
