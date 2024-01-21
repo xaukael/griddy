@@ -164,7 +164,7 @@ let d = new Dialog({
       p = foundry.utils.deepClone(position)
       let gridString = grid.map(a=>a.join('')).join('0')
       let {w, h} = p
-      let pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
+      let pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w+1)+'}':'')).join(''))
       let match = gridString.match(pattern)
       if (match) {
         let x = match.index%(cols+1)
@@ -173,7 +173,7 @@ let d = new Dialog({
         return Object.assign(p, {x, y, w, h})
       }
       [w, h] = [h, w]; // try rotated-
-      pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w)+'}':'')).join(''))
+      pattern = new RegExp([...Array(h)].map((r,i)=>'1{'+w+'}'+(i<h-1?'[01]{'+(cols-w+1)+'}':'')).join(''))
       match = gridString.match(pattern)
       if (match) {
         let x = match.index%(cols+1)
