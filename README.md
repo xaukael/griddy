@@ -33,6 +33,9 @@ The item configuration dialog, accessed through the header button added to the i
 ![image](https://github.com/xaukael/griddy/assets/37848032/e7f016ed-124c-42ee-af9c-74916a8975b2)
 
 ## Updates
+1.0.21
+- fixed a bonehead error that would cause an infinite render loop due to conflict resolution thinking it found a spot for an item that is in fact invalid
+  
 1.0.20
 - fixed items in directory being deleted if dragged onto the same item in a grid
 - improved handling of quantities that may not be stored as numbers
