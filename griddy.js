@@ -647,6 +647,7 @@ d.render(true);
 
 Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
   let item = app.item
+  if (!game.settings.get('griddy', 'itemTypes').split(',').includes(item.type)) return;
   if (item.uuid.startsWith('Actor'))
   buttons.unshift({
     class: "delete-item",
@@ -664,6 +665,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
       return item.delete()
     }
   })
+ 
   if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)
   buttons.unshift({
     class: "move-item",
