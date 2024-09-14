@@ -95,13 +95,13 @@ let d = new Dialog({
   <div class="${id}" style="height: ${rows*gridSize+1}px; width:${cols*gridSize+1}px;" data-grid-size="${gridSize}" data-rows="${rows}" data-cols="${cols}" data-color="${gridColor}"></div>`,
   buttons: {},
   render: async (html)=>{
-    if (!render) return //console.log(`${id} render cancelled`);
-    //console.log(`${id} render`)
+    
+    if (!render) return console.log(`${id} render cancelled`);
+    //
     // STYLE THE DIALOG SECTION - COLOR MAY HAVE TO GO
     //console.log(html[0])
     $(html[0]).parent().css({background:background, color: 'white'})
     //html[0].innerHTML += 
-    
     // FILTER ITEMS
     let items = character.items.filter(i=>itemTypes.includes(i.type)&&i.flags.griddy?.position?.e!=true)
     if (container) items = items.filter(i=>i.flags.griddy.position.n && i.flags.griddy.position.n==container)
@@ -416,7 +416,6 @@ let d = new Dialog({
       position.x = x
       position.y = y
       position.n = n
-      
       let i
       if (target) i = fromUuidSync(target.dataset.uuid)
       if (i) { // if dropped on another item
@@ -483,6 +482,7 @@ let d = new Dialog({
       //Object.values(character.apps).forEach(a=>a.render(true))
       await item.setFlag('griddy', 'position', position)
       
+      d.render(true)
       return $(`div#Item-${item.id}`).css('opacity', '1')
     })
     
@@ -545,6 +545,7 @@ let d = new Dialog({
       $(e).addClass('conflicts')
       return e
     })
+    //console.log(conflictingElements)
     for (let e of conflictingElements) {
       let item = fromUuidSync(e.dataset.uuid)//character.items.get(e.id)
       let position = item.getFlag('griddy', 'position')
@@ -639,8 +640,9 @@ Hooks.once('renderDialog', (app, html, options)=>{
 
 });
 d.object = this
-character.apps[d.appId] = d;
 d.render(true);
+character.apps[d.appId] = d;
+
 
 }// end Actor.prototype.inventoryGrid 
 
@@ -859,7 +861,7 @@ Hooks.on('ready', ()=>{
       },
       render: (html)=>{
         let table = `<style>div.types-form span {line-height: var(--form-field-height);}</style><p>What items types should be included in Griddy?</p>
-              <div class="types-form" style="display:grid; grid-template-columns: 1.5em auto ; column-gap: 1em; row-gap: .2em; margin-bottom: .5em">${ Object.keys(game.system.model.Item).reduce((a,x)=>a+=`
+              <div class="types-form" style="display:grid; grid-template-columns: 1.5em auto ; column-gap: 1em; row-gap: .2em; margin-bottom: .5em">${ Object.keys(game.release.generation<12?game.system.model.Item:CONFIG.Item.typeLabels).reduce((a,x)=>a+=`
               <input name="${x}" type="checkbox" ${itemTypes.includes(x)?'checked':''}></input><span>${x}</span>`,``)}</div>`
               html[0].innerHTML = table
       }
@@ -885,7 +887,7 @@ Hooks.on('renderSettingsConfig', (app, html)=>{
       render: (html)=>{
         let table = `<style>div.types-form span {line-height: var(--form-field-height);}</style><p>What items types should be included in Griddy?</p>
               <div class="types-form" style="display:grid; grid-template-columns: 1.5em auto ; column-gap: 1em; row-gap: .2em; margin-bottom: .5em">
-              ${ Object.keys(game.system.model.Item).reduce((a,x)=>a+=`
+              ${ Object.keys(game.release.generation<12?game.system.model.Item:CONFIG.Item.typeLabels).reduce((a,x)=>a+=`
               <input name="${x}" type="checkbox" ${itemTypes.includes(x)?'checked':''}></input><span>${x}</span>`,``)}</div>`
               html[0].innerHTML = table
       }
