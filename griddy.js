@@ -149,6 +149,7 @@ let d = new Dialog({
            <span class="item-quantity" style="font-size:${gridSize/4.5}px;position: absolute; top: 2px; left: 2px; color: white; background: rgba(0, 0, 0, 0.5); padding:1px 3px; display: ${foundry.utils.getProperty(i.system, systemQuanityProp)>1?'inline':'none'}">${foundry.utils.getProperty(i.system, systemQuanityProp)}</span>
            </div>`, ``) 
     html.find(`div.${id}`).html(itemElements);
+    //html.find('div.item').mouseenter(()=>{game.audio.play('modules/griddy/off.ogg', {context: game.audio.interface})})
     
     // FUNCTION TO GET A POSISION (BAD NAME - RENAME?)
     function testPosition(position, item, g){
@@ -329,6 +330,7 @@ let d = new Dialog({
     })
     .bind('dragend', function(e){
       
+      //game.audio.play('modules/griddy/on.ogg', {context: game.audio.interface})
       e.originalEvent.preventDefault();
       //console.log(ui.windows[this.closest('.app').dataset.appid].object)
       document.querySelectorAll('div.drag-img').forEach(e=>e.remove())
@@ -396,6 +398,7 @@ let d = new Dialog({
       return $(this).find('div.item-drag-preview').remove()
     })
     .bind('drop', async function(e){
+      //game.audio.play('modules/griddy/on.ogg', {context: game.audio.interface})
       this.style.zIndex = 'unset';
       //let preview = $('div.item-drag-preview')
       let target = e.target.closest('div.item')
@@ -736,6 +739,15 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
 
 Hooks.once("init", ()=>{
   
+  game.keybindings.register("griddy", "showGriddy", {
+     name: "Griddy",
+     hint: "Show Griddy for user character",
+     editable: [{key: "KeyI", modifiers: [] }],
+     onDown: (e) => {  },
+     onUp: () => { return game.user.character.griddy() },      
+     precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+  });
+  
   game.settings.register('griddy', `itemTypes`, {
     name: `Item Types `,
     hint: `Comma separated list of your system's item types to include on the grid. Double click for selection dialog`,
@@ -870,8 +882,9 @@ Hooks.on('ready', ()=>{
 })
 
 Hooks.on('renderSettingsConfig', (app, html)=>{
+  console.log("html:",html)
  //let faLink = $(`<a href="https://fontawesome.com/search?o=r&m=free" target="_blank">Find Icons</a>`);
-  
+  if (html.nodeName) html = $(html)
     let itemTypesButton = $(`<button>Select</button>`).click(async function(e) {
     e.stopPropagation();
     e.preventDefault();
