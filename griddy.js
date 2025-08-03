@@ -733,7 +733,7 @@ Hooks.on('getHeaderControlsDocumentSheetV2', function (app, buttons) {
     class: "delete-item",
     icon: "fas fa-trash",
     label: "Delete",
-    onClick: (e)=<{itemHeaderOnClickDelete( e, item)}
+    onClick: (e)=>{itemHeaderOnClickDelete( e, item)}
   })
  
   if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)
@@ -741,7 +741,7 @@ Hooks.on('getHeaderControlsDocumentSheetV2', function (app, buttons) {
     class: "move-item",
     icon: "fa-solid fa-up-down-left-right",
     label: "Position",
-    onClick: (e)=<{itemHeaderOnClickPosition( e, item)}
+    onClick: (e)=>{itemHeaderOnClickPosition( e, item)}
   })
 })
 
@@ -753,7 +753,7 @@ Hooks.on('getItemSheetHeaderButtons', function (app, buttons) {
     class: "delete-item",
     icon: "fas fa-trash",
     label: "Delete",
-    onclick: (e)=<{itemHeaderOnClickDelete( e, item)}
+    onclick: (e)=>{itemHeaderOnClickDelete( e, item)}
   })
  
   if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)
@@ -761,7 +761,7 @@ Hooks.on('getItemSheetHeaderButtons', function (app, buttons) {
     class: "move-item",
     icon: "fa-solid fa-up-down-left-right",
     label: "Position",
-    onclick: (e)=<{itemHeaderOnClickPosition( e, item)}
+    onclick: (e)=>{itemHeaderOnClickPosition( e, item)}
   })
 })
 
