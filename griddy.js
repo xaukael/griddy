@@ -650,15 +650,9 @@ character.apps[d.appId] = d;
 }// end Actor.prototype.inventoryGrid 
 
 
-Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
-  let item = app.item
-  if (!game.settings.get('griddy', 'itemTypes').split(',').includes(item.type)) return;
-  if (item.uuid.startsWith('Actor'))
-  buttons.unshift({
-    class: "delete-item",
-    icon: "fas fa-trash",
-    label: "Delete",
-    onclick: async (e)=>{
+
+         
+var itemHeaderOnClickDelete = async function (e, item) {
       event.preventDefault();
       let doDelete = await Dialog.wait({title: `Delete ${item.name}?`, content: ``,
         buttons: {
@@ -669,14 +663,7 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
       if (!doDelete) return
       return item.delete()
     }
-  })
- 
-  if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)
-  buttons.unshift({
-    class: "move-item",
-    icon: "fa-solid fa-up-down-left-right",
-    label: "Position",
-    onclick: async (e)=>{
+var itemHeaderOnClickPosition = async function (e, item) {
       let changeDialog = new Dialog({title:`${item.name} Position`,content:'', buttons:{},
         render: async (html)=>{
           let p = item.flags.griddy?.position
@@ -734,6 +721,47 @@ Hooks.on('getItemSheetHeaderButtons', (app, buttons)=>{
       },{top: e.clientY , left: e.clientX, width: 250, height: 'auto'}).render(true)
       item.apps[changeDialog.appId] = changeDialog;
     }
+  
+Hooks.on('getHeaderControlsDocumentSheetV2', function (app, buttons) {
+  
+  if (!app.item) return;
+  let item = app.item
+  if (!game.settings.get('griddy', 'itemTypes').split(',').includes(item.type)) return;
+  if (item.uuid.startsWith('Actor'))
+    
+  buttons.unshift({
+    class: "delete-item",
+    icon: "fas fa-trash",
+    label: "Delete",
+    onClick: (e)=<{itemHeaderOnClickDelete( e, item)}
+  })
+ 
+  if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)
+  buttons.unshift({
+    class: "move-item",
+    icon: "fa-solid fa-up-down-left-right",
+    label: "Position",
+    onClick: (e)=<{itemHeaderOnClickPosition( e, item)}
+  })
+})
+
+Hooks.on('getItemSheetHeaderButtons', function (app, buttons) {
+  let item = app.item
+  if (!game.settings.get('griddy', 'itemTypes').split(',').includes(item.type)) return;
+  if (item.uuid.startsWith('Actor'))
+  buttons.unshift({
+    class: "delete-item",
+    icon: "fas fa-trash",
+    label: "Delete",
+    onclick: (e)=<{itemHeaderOnClickDelete( e, item)}
+  })
+ 
+  if (game.settings.get('griddy', 'resizing')=="GM"?game.user.isGM:true)
+  buttons.unshift({
+    class: "move-item",
+    icon: "fa-solid fa-up-down-left-right",
+    label: "Position",
+    onclick: (e)=<{itemHeaderOnClickPosition( e, item)}
   })
 })
 
@@ -940,6 +968,20 @@ Hooks.on('getActorSheetHeaderButtons', (app, buttons)=>{
       app.actor.griddy()
     }
   })
+})
+
+Hooks.on('getHeaderControlsActorSheetV2', (app, buttons)=>{
+  console.log("buttons", buttons)
+  buttons.unshift({
+    "label": "Griddy",
+    "class": "griddy",
+    "icon": "fas fa-table-cells",
+    onClick: (e)=>{
+      console.log(app)
+      app.actor.griddy()
+    }
+  })
+  //Array.from(document.querySelectorAll('#context-menu > menu > li ')).find(el => el.textContent === 'Griddy').addEventListener('click', )
 })
 
 
