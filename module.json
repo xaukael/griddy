@@ -6,12 +6,12 @@
     "description": "System agnostic grid based actor item inventory UI",
     "author": "Xaukael",
     "authors": [{"name":"Xaukael"}],
-    "version": "1.0.25",
+    "version": "1.0.26",
     "minimumCoreVersion": "10",
-    "compatibleCoreVersion": "13",
+    "compatibleCoreVersion": "14",
     "compatibility": {
         "minimum": "10",
-        "verified": "13"
+        "verified": "14"
       },
     "scripts": ["griddy.js"],
     "styles": [],
